@@ -1,0 +1,10 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_core.ipynb
+      - 01_utils.ipynb
+      - 02_website.ipynb
+      - 03_article.ipynb
+      - TODO.ipynb
+      - design_questions.ipynb

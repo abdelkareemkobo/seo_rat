@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "seo_rat"
+  site-url: "https://abdelkareemkobo.github.io/seo_rat"
+  description: "seo rat is an SEO to give you some help to optimize your content based on markdown for sites like astor, quarto"
+  repo-branch: main
+  repo-url: "https://github.com/abdelkareemkobo/seo_rat"
