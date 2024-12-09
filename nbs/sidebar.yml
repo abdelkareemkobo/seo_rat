@@ -6,4 +6,3 @@ website:
       - 01_utils.ipynb
       - 02_website.ipynb
       - 03_article.ipynb
-      - design_questions.ipynb
