@@ -6,6 +6,16 @@
 __all__ = ['MongoDBConnection']
 
 # %% ../nbs/00_core.ipynb 3
+from typing import Optional
+from pymongo import MongoClient
+from pymongo.database import Database
+import yaml
+from pathlib import Path
+import re
+from dataclasses import dataclass
+
+
+# %% ../nbs/00_core.ipynb 4
 class MongoDBConnection:
     """Class to handle MongoDB connections for SEORAT"""
 
