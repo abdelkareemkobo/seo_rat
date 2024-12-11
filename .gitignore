@@ -1,6 +1,7 @@
 _docs/
 _proc/
-
+client_secrets.json
+token.pickle
 *.bak
 .gitattributes
 .last_checked
