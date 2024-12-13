@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from seo_rat.fast_gsc import app as search_api_app
 from seo_rat.store_gsc import store_router  # Import the storage router
+from seo_rat.indextime import router as index_router
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -29,6 +30,7 @@ app.add_middleware(
 # Include routes from search_api_app
 app.include_router(search_api_app.router)
 app.include_router(store_router)
+app.include_router(index_router)
 
 # Add callback URL configuration
 os.environ["OAUTH_CALLBACK_URL"] = "http://localhost:8000/callback"
