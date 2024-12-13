@@ -1,5 +1,6 @@
 _docs/
 _proc/
+qdrant_storage/
 client_secrets.json
 token.pickle
 *.bak
