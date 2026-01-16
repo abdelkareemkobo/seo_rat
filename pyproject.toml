@@ -1,10 +1,16 @@
-[build-system]
-requires = ["setuptools>=64.0"]
-build-backend = "setuptools.build_meta"
-
-
-[tool.ruff.lint]
-select = ["ALL"]
-
-[tool.ruff]
-ignore = ["E262", "E261"]  # Ignore space after # rules
+[project]
+name="seo_rat"
+version = "0.1.0"
+description = "SEO optimization with Python"
+readme = "README.md"
+requires-python=">=3.12"
+dependencies = [
+    "google-api-python-client>=2.188.0",
+    "google-auth>=2.47.0",
+    "google-auth-oauthlib>=1.2.4",
+    "nbdev>=2.4.10",
+    "pydantic>=2.12.5",
+    "ruff>=0.14.13",
+    "sqlmodel>=0.0.31",
+    "ty>=0.0.12",
+]

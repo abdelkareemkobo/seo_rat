@@ -2,12 +2,12 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - 00_core.ipynb
-      - 01_utils.ipynb
-      - 02_website.ipynb
+      - 00_sqlite.ipynb
+      - 01_models.ipynb
+      - 02_content_parser.ipynb
       - 03_article.ipynb
-      - 04_searchapi.ipynb
-      - 05_mongogsc.ipynb
-      - 06_store_gsc.ipynb
-      - 07_indextime.ipynb
-      - 08_semantic_search.ipynb
+      - 03_seo_analysis.ipynb
+      - 04_gsc_client.ipynb
+      - 05_gsc_storage.ipynb
+      - 06_index_tracking.ipynb
+      - 07_semantic_search.ipynb
