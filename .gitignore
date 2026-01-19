@@ -152,3 +152,7 @@ checklink/cookies.txt
 
 # Quarto
 .quarto
+
+#client credentials
+client_secrets.json
+token.pickle
