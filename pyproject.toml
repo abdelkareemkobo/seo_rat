@@ -5,9 +5,15 @@ description = "SEO optimization with Python"
 readme = "README.md"
 requires-python=">=3.12"
 dependencies = [
+    "bs4>=0.0.2",
+    "fastcore>=1.12.1",
     "google-api-python-client>=2.188.0",
     "google-auth>=2.47.0",
     "google-auth-oauthlib>=1.2.4",
+    "httpx>=0.28.1",
+    "ipykernel>=7.1.0",
+    "ipywidgets>=8.1.8",
+    "lxml>=6.0.2",
     "nbdev>=2.4.10",
     "pydantic>=2.12.5",
     "ruff>=0.14.13",
