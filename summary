@@ -1,0 +1,43 @@
+# SEO RAT Feature Summary
+
+**Database and Models**
+- SQLite DB helper to create engine, auto-create tables, and open sessions (`seo_rat/sqlite_db.py`).
+- SQLModel entities for Website, GSCAnalytics, and IndexStatus with validation and unique constraints (`seo_rat/models.py`).
+- Article table and CRUD utilities for SEO content tracking (`seo_rat/article.py`).
+
+**Content Mapping and Parsing**
+- Map sitemap URLs to local files across `.qmd`, `.md`, `.ipynb` (`seo_rat/content_mapper.py`).
+- Parse frontmatter for metadata and notebooks, strip frontmatter, and extract headers (`seo_rat/content_parser.py`).
+- Title/description length checks and content length threshold check (`seo_rat/content_parser.py`).
+- Link extraction, internal/external classification, and image alt extraction (`seo_rat/content_parser.py`).
+- Text utilities: normalize, phone detection, similarity ratio, and file helpers (`seo_rat/content_parser.py`).
+- Arabic to slug conversion and file-to-slug mapping helpers (`seo_rat/content_parser.py`).
+
+**SEO Analysis**
+- Keyword density, keyword placement, and keyword-in-metadata checks (`seo_rat/seo_analysis.py`).
+- H1 count validation with Quarto title handling (`seo_rat/seo_analysis.py`).
+- Header distribution analysis (`seo_rat/seo_analysis.py`).
+- Duplicate content detection and content grouping by similarity (`seo_rat/seo_analysis.py`).
+- Keyword cannibalization analysis across articles (`seo_rat/seo_analysis.py`).
+
+**SEO Report**
+- Sync sitemap-mapped articles into DB and generate page-level SEO reports (`seo_rat/seo_report.py`).
+- Per-page checks for title/description length, content length, H1, missing image alts, and link counts (`seo_rat/seo_report.py`).
+- Site-wide duplicate title/description detection with similarity threshold (`seo_rat/seo_report.py`).
+
+**Google Search Console (GSC)**
+- OAuth flow, token handling, and verified sites listing (`seo_rat/gsc_client.py`).
+- Date range helpers with 3-day delay handling (`seo_rat/gsc_client.py`).
+- Fetch Search Analytics data from GSC (`seo_rat/gsc_client.py`).
+- Store GSC data with upsert and query analytics by query, page, country, device, and date range (`seo_rat/gsc_storage.py`).
+- Trends and aggregation helpers, plus batch import across dates (`seo_rat/gsc_storage.py`).
+
+**Index Tracking**
+- URL Inspection API integration to track index status (`seo_rat/index_tracking.py`).
+- Store and query index status; list not-indexed pages (`seo_rat/index_tracking.py`).
+- Fetch sitemap URLs and bulk index checks (`seo_rat/index_tracking.py`).
+
+**Semantic Search**
+- Qdrant-backed keyword vector store with SentenceTransformers embedding (`seo_rat/semantic_search.py`).
+- Store, search, and filter keywords with performance metadata (`seo_rat/semantic_search.py`).
+- Track keyword presence in content and manual importance flags (`seo_rat/semantic_search.py`).

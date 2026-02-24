@@ -5,11 +5,11 @@
 # %% auto #0
 __all__ = ['SQLiteDB']
 
-# %% ../nbs/00_sqlite.ipynb #9baf8a2f
+# %% ../nbs/00_sqlite.ipynb #46cab30a
 from sqlmodel import create_engine, Session, SQLModel
 from pathlib import Path
 
-# %% ../nbs/00_sqlite.ipynb #6b61df25
+# %% ../nbs/00_sqlite.ipynb #52dbb72f
 class SQLiteDB:
 
     def __init__(self, db_path: str = "./data/seo.db"):

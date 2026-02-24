@@ -1,4 +1,7 @@
 ## Todo
+1. refactor
+2. Correct nbdev doc
+3. RoadMap with all features i am working on 
 
 ### Analytics Queries Improvement
 
@@ -18,7 +21,7 @@
 
 #### AI Features
 
-1. Keywords Suggetions
+1. Keywords Suggetionsd
 
 2. Better
    1. Heaings, Description , Title

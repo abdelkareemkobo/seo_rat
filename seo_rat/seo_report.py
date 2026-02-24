@@ -125,8 +125,10 @@ def generate_seo_report(session: Session, website_id: int, domain: str) -> Dict:
             # Run checks
             report = {
                 "file_path": article.file_path,
-                "title_check": check_title_length(metadata),
-                "description_check": check_desc_length(metadata),
+                "title_check": check_title_length(
+                    metadata.get("title", "")
+                ),  # Pass string
+                "description_check": check_desc_length(metadata["description"]),
                 "content_check": check_content_length(content),
                 "h1_check": check_h1_count(
                     headers, title=metadata["title"], is_quarto=True
