@@ -1,22 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name="seo_rat"
-version = "0.1.0"
-description = "SEO optimization with Python"
+name = "seo_rat"
+dynamic = ["version"]
+description = "seo rat is an SEO to give you some help to optimize your content based on markdown for sites like astor, quarto"
 readme = "README.md"
-requires-python=">=3.12"
-dependencies = [
-    "bs4>=0.0.2",
-    "fastcore>=1.12.1",
-    "google-api-python-client>=2.188.0",
-    "google-auth>=2.47.0",
-    "google-auth-oauthlib>=1.2.4",
-    "httpx>=0.28.1",
-    "ipykernel>=7.1.0",
-    "ipywidgets>=8.1.8",
-    "lxml>=6.0.2",
-    "nbdev>=2.4.10",
-    "pydantic>=2.12.5",
-    "ruff>=0.14.13",
-    "sqlmodel>=0.0.31",
-    "ty>=0.0.12",
-]
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "abdelkareemkobo", email = "kareem01095134688@gmail.com"}]
+keywords = ['nbdev', 'jupyter', 'notebook', 'python']
+classifiers = ["Natural Language :: English", "Intended Audience :: Developers", "Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/abdelkareemkobo/seo_rat"
+Documentation = "https://abdelkareemkobo.github.io/seo_rat"
+
+[project.entry-points.nbdev]
+seo_rat = "seo_rat._modidx:d"
+
+[tool.setuptools.dynamic]
+version = {attr = "seo_rat.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["seo_rat"]
+
+[tool.nbdev]
+custom_sidebar = false
