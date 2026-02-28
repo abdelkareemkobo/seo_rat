@@ -15,11 +15,23 @@ classifiers = ["Natural Language :: English", "Intended Audience :: Developers",
 dependencies = [
     "fastcore>=1.12.18",
     "beautifulsoup4>=4.12.0",
+    "httpx>=0.28.0",
+    "google-api-python-client>=2.170.0",
+    "google-auth-oauthlib>=1.2.0",
+    "lxml>=5.0.0",
+    "nbdev>=3.0.12",
+    "PyYAML>=6.0.0",
+    "sqlmodel>=0.0.24",
+    "python-dotenv>=1.2.1",
+    "twine>=6.2.0",
 ]
 
 [project.urls]
 Repository = "https://github.com/abdelkareemkobo/seo_rat"
 Documentation = "https://abdelkareemkobo.github.io/seo_rat"
+
+[project.scripts]
+nbdev_preview = "nbdev.quarto:nbdev_preview"
 
 [project.entry-points.nbdev]
 seo_rat = "seo_rat._modidx:d"

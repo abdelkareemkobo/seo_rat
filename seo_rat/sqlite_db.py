@@ -5,17 +5,82 @@
 # %% auto #0
 __all__ = ['SQLiteDB']
 
-# %% ../nbs/00_sqlite.ipynb #3621902b
+# %% ../nbs/00_sqlite.ipynb #96fa0d1b
 from sqlmodel import create_engine, Session, SQLModel
 from pathlib import Path
+from sqlalchemy.exc import DatabaseError
+from datetime import datetime
+import os
 
-# %% ../nbs/00_sqlite.ipynb #ce5ae7de
+
+# %% ../nbs/00_sqlite.ipynb #b92779bf
 class SQLiteDB:
 
-    def __init__(self, db_path: str = "./data/seo.db"):
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.engine = create_engine(f"sqlite:///{db_path}")
+    def __init__(self, db_path: str | None = None, recreate_if_corrupt: bool = True):
+        self.db_path = self._resolve_db_path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.engine = create_engine(f"sqlite:///{self.db_path}")
+        try:
+            self._initialize_schema()
+            self._assert_integrity()
+        except (DatabaseError, RuntimeError) as e:
+            if recreate_if_corrupt and self._is_corruption_error(e):
+                self._recreate_corrupt_db()
+            else:
+                raise
+
+    @staticmethod
+    def _resolve_db_path(db_path: str | None) -> Path:
+        if db_path:
+            return Path(db_path).expanduser().resolve()
+
+        env_path = os.getenv("SEO_RAT_DB_PATH")
+        if env_path:
+            return Path(env_path).expanduser().resolve()
+
+        candidates = []
+        if "__file__" in globals():
+            candidates.append(Path(__file__).resolve().parents[1] / "nbs" / "data" / "seo.db")
+
+        cwd = Path.cwd().resolve()
+        candidates.extend(
+            [
+                cwd / "nbs" / "data" / "seo.db",
+                cwd / "data" / "seo.db",
+                cwd.parent / "nbs" / "data" / "seo.db",
+            ]
+        )
+
+        for candidate in candidates:
+            if candidate.parent.exists():
+                return candidate
+
+        return candidates[0]
+
+    def _initialize_schema(self):
         SQLModel.metadata.create_all(self.engine)
+
+    def _assert_integrity(self):
+        with self.engine.connect() as conn:
+            check = conn.exec_driver_sql("PRAGMA integrity_check;").scalar()
+        if check != "ok":
+            raise RuntimeError(f"integrity_check failed: {check}")
+
+    @staticmethod
+    def _is_corruption_error(err: Exception) -> bool:
+        msg = str(err).lower()
+        return any(token in msg for token in ["malformed", "database disk image", "integrity_check failed"])
+
+    def _recreate_corrupt_db(self):
+        self.engine.dispose()
+        if self.db_path.exists():
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup = self.db_path.with_name(f"{self.db_path.stem}.corrupt-{timestamp}{self.db_path.suffix}")
+            self.db_path.replace(backup)
+
+        self.engine = create_engine(f"sqlite:///{self.db_path}")
+        self._initialize_schema()
 
     def get_session(self):
         return Session(self.engine)
+
