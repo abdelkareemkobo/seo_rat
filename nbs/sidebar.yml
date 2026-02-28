@@ -3,12 +3,15 @@ website:
     contents:
       - index.ipynb
       - 00_sqlite.ipynb
+      - 013_page_seo_audit.ipynb
       - 01_models.ipynb
       - 02_content_parser.ipynb
       - 03_article.ipynb
-      - 10_seo_content_analysis.ipynb
-      - 11_seo_site_analysis.ipynb
       - 04_gsc_client.ipynb
       - 05_gsc_storage.ipynb
       - 06_index_tracking.ipynb
-      - 07_semantic_search.ipynb
+      - 08_content_mapper.ipynb
+      - 09_seo_report.ipynb
+      - 10_seo_content_analysis.ipynb
+      - 11_seo_site_analysis.ipynb
+      - 12_gsc_insights.ipynb
