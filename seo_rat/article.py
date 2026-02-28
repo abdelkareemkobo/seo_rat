@@ -4,42 +4,36 @@
 __all__ = ['Article', 'insert_article', 'get_article_by_id', 'get_article_by_path', 'get_articles_by_website',
            'update_article_keyword', 'delete_article', 'update_article_optimization']
 
-# %% ../nbs/03_article.ipynb #79ca9466
-from sqlmodel import SQLModel, Field, create_engine
+# %% ../nbs/03_article.ipynb #a01d86e9
+from sqlmodel import SQLModel, Field, create_engine, Session, select, Column
+from sqlalchemy import JSON
 from pydantic import field_validator
 from datetime import datetime, date
-from typing import Optional, Dict, Any, List
 from pathlib import Path
 
-from sqlmodel import Session, select
-from typing import List, Optional
 
-# %% ../nbs/03_article.ipynb #bddcee60
-from sqlmodel import Column
-from sqlalchemy import JSON
-
-# %% ../nbs/03_article.ipynb #9fb02744
+# %% ../nbs/03_article.ipynb #ade8b7b6
 class Article(SQLModel, table=True):
     __table_args__ = {"extend_existing": True}
     id: int | None = Field(default=None, primary_key=True)
     website_id: int = Field(foreign_key="website.id")
     file_path: str  # Path to .md file
     focus_keyword: str | None = None
-    secondary_keywords: List[str] | None = Field(default=None, sa_column=Column(JSON))
+    secondary_keywords: list[str] | None = Field(default=None, sa_column=Column(JSON))
 
     created_at: datetime = Field(default_factory=datetime.now)
     target_goal: str | None = None
     last_optimized: datetime | None = None
 
 
-# %% ../nbs/03_article.ipynb #899ff763
+# %% ../nbs/03_article.ipynb #dd5881f7
 def insert_article(
     session: Session,
     website_id: int,
     file_path: str,
-    focus_keyword: str = None,
-    secondary_keywords: List[str] | None = None,
-    target_goal: str = None,
+    focus_keyword: str | None = None,
+    secondary_keywords: list[str] | None = None,
+    target_goal: str | None = None,
     last_optimized: datetime | None = None,
 ) -> Article:
     """Insert new article"""
@@ -48,6 +42,8 @@ def insert_article(
         file_path=file_path,
         focus_keyword=focus_keyword,
         secondary_keywords=secondary_keywords,
+        target_goal=target_goal,
+        last_optimized=last_optimized,
     )
     session.add(article)
     session.commit()
@@ -55,30 +51,30 @@ def insert_article(
     return article
 
 
-# %% ../nbs/03_article.ipynb #d6e00612
-def get_article_by_id(session: Session, article_id: int) -> Optional[Article]:
+# %% ../nbs/03_article.ipynb #f24bee04
+def get_article_by_id(session: Session, article_id: int) -> Article | None:
     """Get article by ID"""
     return session.get(Article, article_id)
 
 
-# %% ../nbs/03_article.ipynb #f97fcbab
-def get_article_by_path(session: Session, file_path: str) -> Optional[Article]:
+# %% ../nbs/03_article.ipynb #3d418033
+def get_article_by_path(session: Session, file_path: str) -> Article | None:
     """Get article by file path"""
     statement = select(Article).where(Article.file_path == file_path)
     return session.exec(statement).first()
 
 
-# %% ../nbs/03_article.ipynb #5bfcffde
-def get_articles_by_website(session: Session, website_id: int) -> List[Article]:
+# %% ../nbs/03_article.ipynb #f780c8b7
+def get_articles_by_website(session: Session, website_id: int) -> list[Article]:
     """Get all articles for a website"""
     statement = select(Article).where(Article.website_id == website_id)
     return session.exec(statement).all()
 
 
-# %% ../nbs/03_article.ipynb #18acb0ad
+# %% ../nbs/03_article.ipynb #d23acd6b
 def update_article_keyword(
     session: Session, article_id: int, focus_keyword: str
-) -> Optional[Article]:
+) -> Article | None:
     """Update article focus keyword"""
     article = session.get(Article, article_id)
     if article:
@@ -89,7 +85,7 @@ def update_article_keyword(
     return article
 
 
-# %% ../nbs/03_article.ipynb #239e4bcb
+# %% ../nbs/03_article.ipynb #e49e20c1
 def delete_article(session: Session, article_id: int) -> bool:
     """Delete article"""
     article = session.get(Article, article_id)
@@ -99,16 +95,18 @@ def delete_article(session: Session, article_id: int) -> bool:
         return True
     return False
 
-# %% ../nbs/03_article.ipynb #0ce4f520
+# %% ../nbs/03_article.ipynb #6b7755e9
 def update_article_optimization(
     session: Session,
     article_id: int,
-    target_goal: str = None,
-    focus_keyword: str = None,
-    secondary_keywords: List[str] = None,
-) -> Article:
+    target_goal: str | None = None,
+    focus_keyword: str | None = None,
+    secondary_keywords: list[str] | None = None,
+) -> Article | None:
     """Update article optimization fields and set last_optimized to now"""
     article = session.get(Article, article_id)
+    if not article:
+        return None
 
     if target_goal:
         article.target_goal = target_goal

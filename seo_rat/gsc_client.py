@@ -7,13 +7,12 @@ __all__ = ['GSCAuth', 'get_date_range', 'fetch_gsc_data', 'get_verified_sites']
 import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict
+from fastcore.basics import store_attr
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request as GoogleRequest
-
 
 # %% ../nbs/04_gsc_client.ipynb #c9ecc849
 class GSCAuth:
@@ -24,35 +23,29 @@ class GSCAuth:
         secrets_file: str = "./client_secrets.json",
         token_file: str = "./token.pickle",
     ):
-        self.secrets_file = secrets_file
+        store_attr()
         self.token_file = Path(token_file)
         self.credentials = self._load_credentials()
 
-    def _load_credentials(self) -> Optional[Credentials]:
-        """Load credentials from file if they exist"""
+    def _load_credentials(self) -> Credentials | None:
         if self.token_file.exists():
             with open(self.token_file, "rb") as token:
                 return pickle.load(token)
         return None
 
     def _save_credentials(self, credentials: Credentials):
-        """Save credentials to file"""
         with open(self.token_file, "wb") as token:
             pickle.dump(credentials, token)
 
-    def get_credentials(self) -> Optional[Credentials]:
-        """Get current credentials, refreshing if necessary"""
+    def get_credentials(self) -> Credentials | None:
         if not self.credentials:
             return None
-
         if self.credentials.expired:
             self.credentials.refresh(GoogleRequest())
             self._save_credentials(self.credentials)
-
         return self.credentials
 
     def authenticate(self):
-        """Run OAuth flow to get credentials"""
         flow = InstalledAppFlow.from_client_secrets_file(
             self.secrets_file,
             scopes=[
@@ -67,38 +60,30 @@ class GSCAuth:
 # %% ../nbs/04_gsc_client.ipynb #b490ca7b
 def get_date_range(
     range_type: str = "today",
-    days: Optional[int] = None,
-    months: Optional[int] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-) -> Tuple[str, str]:
+    days: int | None = None,
+    months: int | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> tuple[str, str]:
     """Generate date range for GSC queries (accounts for 3-day delay)"""
-    today = datetime.now()
-    latest_available = today - timedelta(days=3)
+    latest = datetime.now() - timedelta(days=3)
 
-    if range_type == "today":
-        date = latest_available.strftime("%Y-%m-%d")
-        return date, date
-
-    if range_type == "last_days" and days:
-        end = latest_available
-        start = end - timedelta(days=days)
-        return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-
-    if range_type == "last_months" and months:
-        end = latest_available
-        start = end - timedelta(days=30 * months)
-        return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-
-    if range_type == "custom" and start_date and end_date:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-        if end.date() > latest_available.date():
-            end = latest_available
-        return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-
-    raise ValueError("Invalid date range parameters")
-
+    match range_type:
+        case "today":
+            d = latest.strftime("%Y-%m-%d")
+            return d, d
+        case "last_days" if days:
+            start = latest - timedelta(days=days)
+            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "last_months" if months:
+            start = latest - timedelta(days=30 * months)
+            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "custom" if start_date and end_date:
+            s = datetime.strptime(start_date, "%Y-%m-%d")
+            e = min(datetime.strptime(end_date, "%Y-%m-%d"), latest)
+            return s.strftime("%Y-%m-%d"), e.strftime("%Y-%m-%d")
+        case _:
+            raise ValueError("Invalid date range parameters")
 
 # %% ../nbs/04_gsc_client.ipynb #520be733
 def fetch_gsc_data(
@@ -106,33 +91,33 @@ def fetch_gsc_data(
     site_url: str,
     start_date: str,
     end_date: str,
-    dimensions: List[str] = None,
+    dimensions: list[str] | None = None,
     row_limit: int = 25000,
-) -> List[Dict]:
+) -> list[dict]:
     """Fetch data from Google Search Console"""
     if dimensions is None:
         dimensions = ["query", "page", "country", "device"]
 
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
-
     request = {
         "startDate": start_date,
         "endDate": end_date,
         "dimensions": dimensions,
         "rowLimit": row_limit,
     }
-
-    response = service.searchanalytics().query(siteUrl=site_url, body=request).execute()
-
-    return response.get("rows", [])
+    return (
+        service.searchanalytics()
+        .query(siteUrl=site_url, body=request)
+        .execute()
+        .get("rows", [])
+    )
 
 
 # %% ../nbs/04_gsc_client.ipynb #d8e05755
-def get_verified_sites(auth: GSCAuth) -> List[Dict]:
+def get_verified_sites(auth: GSCAuth) -> list[dict]:
     """Get list of verified sites"""
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
     sites_list = service.sites().list().execute()
-
     return [
         {"site_url": site["siteUrl"], "permission_level": site["permissionLevel"]}
         for site in sites_list.get("siteEntry", [])
