@@ -12,7 +12,10 @@ license = {text = "Apache-2.0"}
 authors = [{name = "abdelkareemkobo", email = "kareem01095134688@gmail.com"}]
 keywords = ['nbdev', 'jupyter', 'notebook', 'python']
 classifiers = ["Natural Language :: English", "Intended Audience :: Developers", "Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
-dependencies = []
+dependencies = [
+    "fastcore>=1.12.18",
+    "beautifulsoup4>=4.12.0",
+]
 
 [project.urls]
 Repository = "https://github.com/abdelkareemkobo/seo_rat"

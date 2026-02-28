@@ -1,23 +1,25 @@
 ## Todo
-1. refactor
+
+1. [x] refactor
 2. Correct nbdev doc
-3. RoadMap with all features i am working on 
-
-### Analytics Queries Improvement
-
-1. Get top queries other than ones we optimized
-   1. what optimized mean?
-   2. should we do this in fly or add it into article class ?
-   3. how to keep tracke of these are optimzied?
-   4. how to filter the analytics function to exclude these queries
-
-### Missing
+3. RoadMap with all features i am working on
 
 #### SEO analysis
+
+I think these are not that important
 
 1. Internal/external link analysis
 2. Content length check
 3. Readability scores
+
+## Divide Cycles
+
+1. Current Content
+    - basic analysis it's correct and good
+2. GSC Info
+   - optimize and enhance with gsc signals (country, month, goal)
+   - NLP for questions and queries and we should include them correctly
+3. Other Pages
 
 #### AI Features
 

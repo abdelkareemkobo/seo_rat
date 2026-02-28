@@ -61,7 +61,7 @@ def delete_website(session, website_id: int):
     session.commit()
 
 
-# %% ../nbs/01_models.ipynb #07be7202
+# %% ../nbs/01_models.ipynb #befc2be0
 class GSCAnalytics(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("site_url", "date", "query", "page", "country", "device"),
@@ -81,12 +81,12 @@ class GSCAnalytics(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
 
 
-# %% ../nbs/01_models.ipynb #5493e072
+# %% ../nbs/01_models.ipynb #eeaafd25
 class IndexStatus(SQLModel, table=True):
     __table_args__ = {"extend_existing": True}
     id: int | None = Field(default=None, primary_key=True)
     site_url: str
-    page_url: str = Field(unique=True)
+    page_url: str 
     verdict: str
     coverage_state: str | None = None
     last_crawl_time: str | None = None
