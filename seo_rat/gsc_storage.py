@@ -4,7 +4,7 @@
 __all__ = ['filter_site', 'filter_dates', 'filter_dimension', 'AnalyticsSummary', 'normalize_url', 'parse_gsc_row',
            'store_gsc_data', 'get_top_queries', 'filter_exclude_pages', 'get_top_queries_excluding_pages',
            'get_page_analytics', 'get_analytics_by_date_range', 'get_trends', 'get_analytics_by', 'store_single_date',
-           'store_date_range']
+           'store_date_range', 'get_missing_dates', 'sync_missing_dates', 'daily_sync']
 
 # %% ../nbs/05_gsc_storage.ipynb #9ba81a16
 from sqlmodel import Session, select
@@ -54,8 +54,7 @@ def parse_gsc_row(row, site_url, date) -> GSCAnalytics:
     keys = row["keys"]
     fields = ("query", "page", "country", "device")
     dims = dict(zip(fields, keys))
-    if dims.get("page"):
-        dims["page"] = normalize_url(dims["page"])
+
 
     return GSCAnalytics(
         site_url=site_url,
@@ -100,6 +99,7 @@ def get_top_queries(
     country: str | None = None,
     page_path: str | None = None,
     limit: int = 10,
+    sort_by:str = "clicks"
 ) -> list[dict]:
     """Get top performing queries, optionally filtered by page"""
     base_query = select(
@@ -117,11 +117,12 @@ def get_top_queries(
         filters.append(partial(filter_dimension, dimension="country", value=country))
     if page_path:
         filters.append(lambda q: q.where(GSCAnalytics.page.contains(page_path)))
+    sort_col = func.sum(GSCAnalytics.impressions) if sort_by =="impressions" else func.sum(GSCAnalytics.clicks)
 
     query = (compose(*filters)(base_query)
         .where(GSCAnalytics.query.isnot(None))
         .group_by(GSCAnalytics.query)
-        .order_by(func.sum(GSCAnalytics.clicks).desc())
+        .order_by(sort_col.desc())
         .limit(limit))
 
     return [row._asdict() for row in session.exec(query)]
@@ -317,4 +318,59 @@ def store_date_range(
 
     return results
 
+
+
+# %% ../nbs/05_gsc_storage.ipynb #5fae22d6
+from datetime import date, timedelta
+
+
+def get_missing_dates(session, site_url, start_date, end_date):
+    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    stored = set(session.exec(
+        select(GSCAnalytics.date).where(GSCAnalytics.site_url == site_url).distinct()
+    ).all())
+    all_dates = set()
+    current = start_date
+    while current <= end_date:
+        all_dates.add(current.strftime("%Y-%m-%d"))
+        current += timedelta(days=1)
+    return sorted(all_dates - stored)
+
+
+# %% ../nbs/05_gsc_storage.ipynb #4269764d
+def sync_missing_dates(session, auth, site_url, start_date, end_date):
+    missing = get_missing_dates(session, site_url, start_date, end_date)
+    results = {"successful": [], "failed": [], "total_records": 0}
+    print(f"Found {len(missing)} missing dates")
+    for date in missing:
+        try:
+            count = store_single_date(session, auth, site_url, date)
+            time.sleep(1)
+            print(f"Synced {date} with {count} records")
+            results["successful"].append(date)
+            results["total_records"] += count
+        except Exception as e:
+            print(f"Failed to sync {date}: {e}")
+            results["failed"].append(date)
+    return {
+        "synced": len(missing),
+        "failed": len(results["failed"]),
+        "total_records": results["total_records"]
+    }
+
+# %% ../nbs/05_gsc_storage.ipynb #f037e7b3
+def daily_sync(session, auth, sites: list[str]) -> dict:
+    """Sync missing GSC data for all sites up to today."""
+    _, end = get_date_range("today")
+
+    results = {}
+    for site_url in sites:
+        stored_dates = set(session.exec(
+            select(GSCAnalytics.date).where(GSCAnalytics.site_url == site_url).distinct()
+        ).all())
+        start = min(stored_dates) if stored_dates else end
+        print(f"\nSyncing {site_url} from {start} to {end}...")
+        results[site_url] = sync_missing_dates(session, auth, site_url, start, end)
+    return results
 

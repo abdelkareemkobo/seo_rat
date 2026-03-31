@@ -2,7 +2,8 @@
 
 # %% auto #0
 __all__ = ['calculate_keyword_density', 'check_h1_count', 'keyword_in_first_section', 'check_paragraph_length',
-           'keyword_in_metadata', 'keyword_in_alt_texts', 'analyze_header_distribution']
+           'keyword_in_metadata', 'keyword_in_alt_texts', 'analyze_header_distribution', 'check_keyword_placement',
+           'content_freshness']
 
 # %% ../nbs/10_seo_content_analysis.ipynb #bce0ad5a
 from .content_parser import extract_headers, remove_metadata
@@ -32,12 +33,12 @@ def calculate_keyword_density(content: str, keyword: str) -> dict:
 
 # %% ../nbs/10_seo_content_analysis.ipynb #41378f3c
 def check_h1_count(
-    headers: list[dict], title: str | None = None, is_quarto: bool = False
+    headers: list[dict], title: str | None = None, title_is_h1: bool = False
 ) -> dict:
     """Check H1 count — for Quarto, the title frontmatter field acts as H1"""
     h1s = [h for h in headers if h["type"] == "h1"]
 
-    if is_quarto and title:
+    if title_is_h1 and title:
         return {"h1_count": 1, "has_single_h1": True, "h1_source": "title"}
 
     return {"h1_count": len(h1s), "has_single_h1": len(h1s) == 1}
@@ -61,13 +62,12 @@ def check_paragraph_length(content: str) -> dict:
     }
 
 # %% ../nbs/10_seo_content_analysis.ipynb #445edd7d
-def keyword_in_metadata(metadata: dict, keyword: str) -> dict:
+def keyword_in_metadata(metadata: dict, keyword: str, desc_field: str = "description") -> dict:
     """Check if keyword is in title, excerpt, description"""
     kw = keyword.lower()
     return {
         "in_title": kw in str(metadata.get("title", "")).lower(),
-        "in_excerpt": kw in str(metadata.get("excerpt", "")).lower(),
-        "in_description": kw in str(metadata.get("description", "")).lower(),
+        "in_description": kw in str(metadata.get(desc_field, "")).lower(),
     }
 
 # %% ../nbs/10_seo_content_analysis.ipynb #24b7c979
@@ -89,3 +89,63 @@ def analyze_header_distribution(headers: list[dict]) -> dict:
     }
 
     return {"counts": distribution, "percentages": percentages}
+
+# %% ../nbs/10_seo_content_analysis.ipynb #81cdf15b
+def check_keyword_placement(keyword, metadata, headers, content, url, desc_field="description", title_is_h1=False):
+    if not keyword:
+        return {
+            "in_h1": False,
+            "in_url": False,
+            "keyword_in_meta": {
+                "in_title": False,
+                "in_description": False,
+            },
+            "keyword_at_first": False,
+        }
+
+    h1_from_headers = any(
+        keyword.lower() in h["content"].lower() for h in headers if h["type"] == "h1"
+    )
+    if title_is_h1:
+        title = str(metadata.get("title", ""))
+        in_h1 = h1_from_headers or keyword.lower() in title.lower()
+    else:
+        in_h1 = h1_from_headers
+
+    in_url = keyword.lower() in url.lower()
+    keyword_in_meta = keyword_in_metadata(metadata, keyword, desc_field=desc_field)
+    keyword_at_first = keyword_in_first_section(content, keyword)
+    return {
+        "in_h1": in_h1,
+        "in_url": in_url,
+        "keyword_in_meta": keyword_in_meta,
+        "keyword_at_first": keyword_at_first,
+    }
+
+
+# %% ../nbs/10_seo_content_analysis.ipynb #f1c9ac58
+def content_freshness(last_updated: str, days=180) -> dict:
+    """check content freshness based on the last updated date last 180 days is considered fresh"""
+    from datetime import datetime, timedelta
+
+    try:
+        if isinstance(last_updated, str):
+            last_updated_date = datetime.strptime(last_updated, "%Y-%m-%d")
+        else:
+            last_updated_date = datetime(
+                last_updated.year, last_updated.month, last_updated.day
+            )
+
+        now = datetime.now()
+        delta = now - last_updated_date
+
+        return {
+            "last_updated": last_updated,
+            "days_since_update": delta.days,
+            "is_fresh": delta.days <= days,
+        }
+    except ValueError:
+        return {
+            "last_updated": last_updated,
+            "error": "Invalid date format. Use YYYY-MM-DD.",
+        }

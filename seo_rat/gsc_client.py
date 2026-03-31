@@ -64,26 +64,53 @@ def get_date_range(
     months: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    history_start: str = "2002-01-01",
 ) -> tuple[str, str]:
     """Generate date range for GSC queries (accounts for 3-day delay)"""
     latest = datetime.now() - timedelta(days=3)
+    today = datetime.now()
 
     match range_type:
         case "today":
             d = latest.strftime("%Y-%m-%d")
             return d, d
+        case "this_week":
+            start = today - timedelta(days=today.weekday())
+            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "last_week":
+            start = today - timedelta(days=today.weekday() + 7)
+            end = start + timedelta(days=6)
+            return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+        case "this_month":
+            start = today.replace(day=1)
+            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "last_month":
+            first_this_month = today.replace(day=1)
+            last_month_end = first_this_month - timedelta(days=1)
+            last_month_start = last_month_end.replace(day=1)
+            return last_month_start.strftime("%Y-%m-%d"), last_month_end.strftime(
+                "%Y-%m-%d"
+            )
+        case "last_7_days":
+            start = latest - timedelta(days=7)
+            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
         case "last_days" if days:
             start = latest - timedelta(days=days)
             return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
         case "last_months" if months:
             start = latest - timedelta(days=30 * months)
             return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "entire_history":
+            history_start = "2020-01-01"
+            return history_start, latest.strftime("%Y-%m-%d")
+
         case "custom" if start_date and end_date:
             s = datetime.strptime(start_date, "%Y-%m-%d")
             e = min(datetime.strptime(end_date, "%Y-%m-%d"), latest)
             return s.strftime("%Y-%m-%d"), e.strftime("%Y-%m-%d")
         case _:
             raise ValueError("Invalid date range parameters")
+
 
 # %% ../nbs/04_gsc_client.ipynb #520be733
 def fetch_gsc_data(

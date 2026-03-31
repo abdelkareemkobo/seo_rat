@@ -86,14 +86,23 @@ def check_length(text: str, min_len: int, max_len: int) -> dict:
     return {"length": length, "optimal_length": min_len <= length <= max_len}
 
 
-def check_title_length(title: str, min_len: int = 30, max_len: int = 60) -> dict:
+def check_title_length(title: str, min_len: int = 50, max_len: int = 60) -> dict:
     length = len(title)
-    return {"length": length, "optimal_length": min_len <= length <= max_len}
+    if length < min_len: status = "too_short"
+    elif length > max_len: status = "too_long"
+    else: status = "optimal"
+    return {"length": length, "status": status, "min": min_len, "max": max_len}
+
 
 
 def check_desc_length(description: str, min_len: int = 150, max_len: int = 160) -> dict:
     length = len(description)
-    return {"length": length, "optimal_length": min_len <= length <= max_len}
+    if length == 0: status = "missing"
+    elif length < min_len: status = "too_short"
+    elif length > max_len: status = "too_long"
+    else: status = "optimal"
+    return {"length": length, "status": status, "min": min_len, "max": max_len}
+
 
 
 # %% ../nbs/02_content_parser.ipynb #657150ca
@@ -119,23 +128,6 @@ def extract_headers(file_path: str) -> list[dict]:
     return headings
 
 
-# %% ../nbs/02_content_parser.ipynb #09640fda
-def check_length(text: str, min_len: int, max_len: int) -> dict:
-    """Check if text length falls within the optimal range"""
-    length = len(text)
-    return {"length": length, "optimal_length": min_len <= length <= max_len}
-
-
-def check_title_length(title: str, min_len: int = 50, max_len: int = 60) -> dict:
-    length = len(title)
-    return {"length": length, "optimal_length": min_len <= length <= max_len}
-
-# %% ../nbs/02_content_parser.ipynb #4661124e
-def check_desc_length(description: str, min_len: int = 150, max_len: int = 160) -> dict:
-    length = len(description)
-    return {"length": length, "optimal_length": min_len <= length <= max_len}
-
-
 # %% ../nbs/02_content_parser.ipynb #cc169660
 def check_content_length(content: str) -> dict:
     """Count words in content"""
@@ -149,8 +141,10 @@ def extract_links(content: str) -> dict[str, dict]:
     links = {}
     lines = content.split("\n")
     for line_number, line in enumerate(lines, start=1):
-        for match in re.finditer(r"\[(.*?)\]\((.*?)\)", line):
+        for match in re.finditer(r"(?<!!)\[(.*?)\]\((.*?)\)", line):
             title, url = match.groups()
+            # Strip optional title: [text](url "title") or [text](url 'title')
+            url = re.sub(r"""\s+["'].*?["']\s*$""", '', url).strip()
             if url not in links:
                 links[url] = {"titles": [], "lines": []}
             links[url]["titles"].append(title)
@@ -177,9 +171,23 @@ def extract_links(content: str) -> dict[str, dict]:
 
 # %% ../nbs/02_content_parser.ipynb #902e3a86
 def extract_images(content: str) -> list[dict]:
-    """Extract images with alt text"""
-    matches = re.findall(r"\!\[(.*?)\]\((.*?)\)", content)
-    return [{"alt_text": alt, "url": url} for alt, url in matches]
+    """Extract images with alt text from markdown and HTML"""
+    images = []
+    # Markdown images: ![alt](url)
+    for alt, url in re.findall(r"\!\[(.*?)\]\((.*?)\)", content):
+        images.append({"alt_text": alt, "url": url})
+    # HTML images: <img src="..." alt="...">
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(content, "html.parser")
+        for img in soup.find_all("img"):
+            src = img.get("src", "").strip()
+            alt = img.get("alt", "").strip()
+            if src:
+                images.append({"alt_text": alt, "url": src})
+    except Exception:
+        pass
+    return images
 
 
 # %% ../nbs/02_content_parser.ipynb #67a91e1b

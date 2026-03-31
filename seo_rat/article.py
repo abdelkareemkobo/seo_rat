@@ -24,6 +24,7 @@ class Article(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     target_goal: str | None = None
     last_optimized: datetime | None = None
+    url: str | None = None
 
 
 # %% ../nbs/03_article.ipynb #8703aac9
@@ -35,6 +36,7 @@ def insert_article(
     secondary_keywords: list[str] | None = None,
     target_goal: str | None = None,
     last_optimized: datetime | None = None,
+    url: str | None = None 
 ) -> Article:
     """Insert new article"""
     article = Article(
@@ -44,6 +46,7 @@ def insert_article(
         secondary_keywords=secondary_keywords,
         target_goal=target_goal,
         last_optimized=last_optimized,
+        url = url 
     )
     session.add(article)
     session.commit()

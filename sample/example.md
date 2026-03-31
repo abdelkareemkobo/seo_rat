@@ -18,11 +18,11 @@ tags:
 
 My name is kareem and i am going to help all you!
 
-## How do you know me!
+## How do you know me
 
 I know you by just saying you are just a shity person!
 
-## oh no! iron man!
+## oh no! iron man
 
 ![Iron man photo](~/assets/images/28.png)
 This is a fancy photo of Iron man!!
@@ -45,8 +45,8 @@ The Hulk is here!
 2. Data Integartions
 3. Batman
 
-#### nbdev is super cool!
+#### nbdev is super cool
 
-##### Test Deriven Developement is a life changing!
+##### Test Deriven Developement is a life changing
 
-###### I am an Love with best girl in the whole world!
+###### I am an Love with best girl in the whole world
