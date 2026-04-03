@@ -2,7 +2,7 @@
 
 # %% auto #0
 __all__ = ['inspect_url_status', 'store_index_status', 'get_index_status', 'get_not_indexed_pages', 'get_not_indexed_by_reason',
-           'fetch_sitemap_urls', 'store_all_index_status', 'submit_sitemap', 'get_index_history']
+           'fetch_sitemap_urls', 'store_all_index_status', 'get_index_history']
 
 # %% ../nbs/06_index_tracking.ipynb #b28f692b
 from sqlmodel import Session, select
@@ -113,14 +113,6 @@ def store_all_index_status(
         time.sleep(1)
 
     return results
-
-# %% ../nbs/06_index_tracking.ipynb #178fc4c9
-def submit_sitemap(auth: GSCAuth, site_url: str, sitemap_url: str):
-    """Submit sitemap to Google Search Console"""
-    service = build("searchconsole", "v1", credentials=auth.get_credentials())
-    service.sitemaps().submit(siteUrl=site_url, feedpath=sitemap_url).execute()
-    print(f"Submitted: {sitemap_url}")
-
 
 # %% ../nbs/06_index_tracking.ipynb #29f908d4
 def get_index_history(session: Session, page_url: str) -> list[IndexStatus]:

@@ -222,9 +222,7 @@ pending |
 - Duplication Detection
 - AI Performance
 
-
 ## RankgMath Missing Features
-
 
 - Social meta (OpenGraph, Twitter Cards)
 - PageSpeed tracking per page
