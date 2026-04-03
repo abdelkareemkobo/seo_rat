@@ -24,6 +24,7 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "python-dotenv>=1.2.1",
     "twine>=6.2.0",
+    "ipykernel>=7.2.0",
 ]
 
 [project.urls]

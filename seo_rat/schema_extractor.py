@@ -63,17 +63,17 @@ def extract_faq_queries(rows: list[dict] | list[str]) -> list[str]:
 
 # %% ../nbs/14_schema_extractor.ipynb #028dbefd
 #| eval: false
-path = "https://awazly.com/malm-dhanat-aldwadmy"
-website_name="https://awazly.com/"
+path = "https://shelid.com/"
+website_name="https://shelid.com/"
 
 start, end = get_date_range("last_days", days=90*8)
 print(start, end)
 
 with db.get_session() as session:
-    articles = get_articles_by_website(session, website_id=1)
+    articles = get_articles_by_website(session, website_id=2)
     for article in articles: 
         page_path= article.url.removeprefix(website_name)
-        top_query = get_top_queries(session=session,site_url="sc-domain:awazly.com",start_date=start,end_date=end,page_path=page_path,limit=1000,sort_by="impressions")
+        top_query = get_top_queries(session=session,site_url="sc-domain:shelid.com",start_date=start,end_date=end,page_path=page_path,limit=1000,sort_by="impressions")
         if  extract_faq_queries(top_query)==[]:
             continue
         print(extract_faq_queries(top_query))

@@ -14,7 +14,7 @@ __all__ = ['GOOGLE_SPEC', 'GOOGLE_SUPPORTED_TYPES', 'fetch_html', 'extract_jsonl
 
 # %% ../nbs/13_schema_validator.ipynb #c3076428
 # Google Rich Results spec: required and recommended fields per type
-# Source: https://developers.google.com/search/docs/appearance/structured-data/search-gallery
+# Source: http://developers.google.com/search/docs/appearance/structured-data/search-gallery
 GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     "Article": {
         "required": ["@type", "headline", "image", "datePublished", "author"],
@@ -238,7 +238,7 @@ def validate_schema(schema_block: dict) -> dict:
     if isinstance(raw_type, list):
         raw_type = raw_type[0] if raw_type else ""
     # Strip full schema.org URL prefix if present
-    schema_type = raw_type.replace("https://schema.org/", "").replace("http://schema.org/", "")
+    schema_type = raw_type.replace("http://schema.org/", "").replace("http://schema.org/", "")
 
     google_supported = schema_type in GOOGLE_SUPPORTED_TYPES
     spec = GOOGLE_SPEC.get(schema_type, {"required": [], "recommended": []})
