@@ -157,3 +157,4 @@ checklink/cookies.txt
 #client credentials
 client_secrets.json
 token.pickle
+nbs/data/seo.db
