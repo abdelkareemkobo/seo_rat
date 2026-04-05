@@ -5,103 +5,66 @@ __all__ = ['detect_duplicate_content', 'analyze_keyword_cannibalization', 'analy
 
 # %% ../nbs/11_seo_site_analysis.ipynb #78c004a8
 from sqlmodel import Session, select
-from .article import Article
+from .article import Article,get_articles_by_website
 from .content_parser import remove_metadata, normalize_text, calculate_similarity
 from .seo_content_analysis import calculate_keyword_density
 
 # %% ../nbs/11_seo_site_analysis.ipynb #adebe122
-def detect_duplicate_content(
-    session: Session, file_path: str, similarity_threshold: float = 0.8
-) -> dict:
-    """Find articles in the DB with content similar to the given file"""
-    with open(file_path, "r") as f:
-        current_content = normalize_text(remove_metadata(f.read()))
-
-    articles = session.exec(select(Article)).all()
+def detect_duplicate_content(session:Session,              # Active database session
+                              website_id:int,               # Website to search within
+                              content:str,                  # Normalized page content
+                              file_path:str,                # Current article path (to exclude self)
+                              similarity_threshold:float=0.8 # Minimum similarity to flag
+                             ) -> dict:
+    "Find articles within a website with content similar to the given content."
+    current = normalize_text(remove_metadata(content))
     similar = []
-
-    for article in articles:
-        if article.file_path == file_path:
-            continue
-        with open(article.file_path, "r") as f:
-            other_content = normalize_text(remove_metadata(f.read()))
-
-        similarity = calculate_similarity(current_content, other_content)
-        if similarity >= similarity_threshold:
-            similar.append({"file_path": article.file_path, "similarity": similarity})
-
+    for article in get_articles_by_website(session, website_id):
+        if article.file_path == file_path: continue
+        other = normalize_text(remove_metadata(open(article.file_path).read()))
+        if (sim := calculate_similarity(current, other)) >= similarity_threshold:
+            similar.append({"file_path": article.file_path, "similarity": sim})
     return {"has_duplicates": len(similar) > 0, "similar_articles": similar}
 
+
 # %% ../nbs/11_seo_site_analysis.ipynb #ead01c83
-def analyze_keyword_cannibalization(session: Session, keyword: str) -> dict:
-    """Find articles competing for the same focus keyword"""
-    articles = session.exec(
-        select(Article).where(Article.focus_keyword == keyword)
-    ).all()
-
+def analyze_keyword_cannibalization(session:Session, # Active database session
+                                    website_id:int,  # Website to search within
+                                    keyword:str      # Focus keyword to check
+                                   ) -> dict:
+    "Find articles within a website competing for the same focus keyword."
+    articles = [a for a in get_articles_by_website(session, website_id)
+                if a.focus_keyword == keyword]
     if len(articles) <= 1:
-        return {
-            "has_cannibalization": False,
-            "keyword": keyword,
-            "count": len(articles),
-        }
+        return {"has_cannibalization": False, "keyword": keyword, "count": len(articles)}
+    results = [{"file_path": a.file_path,
+                **{k: v for k, v in calculate_keyword_density(
+                    remove_metadata(open(a.file_path).read()), keyword).items()
+                   if k in ("density", "count")}}
+               for a in articles]
+    return {"has_cannibalization": True, "keyword": keyword,
+            "count": len(articles), "articles": results}
 
-    results = []
+
+def analyze_content_groups(session:Session,              # Active database session
+                           website_id:int,               # Website to search within
+                           similarity_threshold:float=0.8 # Minimum similarity to group
+                          ) -> dict:
+    "Group similar articles together across a website."
+    articles = get_articles_by_website(session, website_id)
+    groups, processed = [], set()
     for article in articles:
-        with open(article.file_path, "r") as f:
-            content = remove_metadata(f.read())
-        density = calculate_keyword_density(content, keyword)
-        results.append(
-            {
-                "file_path": article.file_path,
-                "density": density["density"],
-                "count": density["count"],
-            }
-        )
-
-    return {
-        "has_cannibalization": True,
-        "keyword": keyword,
-        "count": len(articles),
-        "articles": results,
-    }
-
-# %% ../nbs/11_seo_site_analysis.ipynb #bcff4e6b
-def analyze_content_groups(session: Session, similarity_threshold: float = 0.8) -> dict:
-    """Group similar articles together across the whole site"""
-    articles = session.exec(select(Article)).all()
-    groups = []
-    processed: set[int] = set()
-
-    for article in articles:
-        if article.id in processed:
-            continue
-
-        with open(article.file_path, "r") as f:
-            main_content = normalize_text(remove_metadata(f.read()))
-
-        group: dict = {"main_article": article.file_path, "similar_articles": []}
-
+        if article.id in processed: continue
+        main = normalize_text(remove_metadata(open(article.file_path).read()))
+        group = {"main_article": article.file_path, "similar_articles": []}
         for other in articles:
-            if other.id == article.id or other.id in processed:
-                continue
-
-            with open(other.file_path, "r") as f:
-                other_content = normalize_text(remove_metadata(f.read()))
-
-            similarity = calculate_similarity(main_content, other_content)
-            if similarity >= similarity_threshold:
-                group["similar_articles"].append(
-                    {"file_path": other.file_path, "similarity": similarity}
-                )
+            if other.id == article.id or other.id in processed: continue
+            other_content = normalize_text(remove_metadata(open(other.file_path).read()))
+            if (sim := calculate_similarity(main, other_content)) >= similarity_threshold:
+                group["similar_articles"].append({"file_path": other.file_path, "similarity": sim})
                 processed.add(other.id)
-
         if group["similar_articles"]:
             groups.append(group)
             processed.add(article.id)
+    return {"total_articles": len(articles), "groups": groups, "duplicate_groups": len(groups)}
 
-    return {
-        "total_articles": len(articles),
-        "groups": groups,
-        "duplicate_groups": len(groups),
-    }

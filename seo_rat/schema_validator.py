@@ -18,7 +18,8 @@ __all__ = ['GOOGLE_SPEC', 'GOOGLE_SUPPORTED_TYPES', 'fetch_html', 'extract_jsonl
 GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     "Article": {
         "required": ["@type", "headline", "image", "datePublished", "author"],
-        "recommended": ["dateModified", "author.@type", "author.name", "publisher", "publisher.@type", "publisher.name"],
+        "recommended": ["dateModified", "author.@type", "author.name", "publisher", "publisher.@type",
+                        "publisher.name"],
     },
     "NewsArticle": {
         "required": ["@type", "headline", "image", "datePublished", "author"],
@@ -30,7 +31,8 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     },
     "BreadcrumbList": {
         "required": ["@type", "itemListElement"],
-        "recommended": ["itemListElement.@type", "itemListElement.position", "itemListElement.name", "itemListElement.item"],
+        "recommended": ["itemListElement.@type", "itemListElement.position", "itemListElement.name",
+                        "itemListElement.item"],
     },
     "Course": {
         "required": ["@type", "name", "description", "provider"],
@@ -50,11 +52,13 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     },
     "Event": {
         "required": ["@type", "name", "startDate", "location"],
-        "recommended": ["endDate", "description", "image", "organizer", "performer", "eventStatus", "eventAttendanceMode", "offers"],
+        "recommended": ["endDate", "description", "image", "organizer", "performer", "eventStatus",
+                        "eventAttendanceMode", "offers"],
     },
     "FAQPage": {
         "required": ["@type", "mainEntity"],
-        "recommended": ["mainEntity.@type", "mainEntity.name", "mainEntity.acceptedAnswer", "mainEntity.acceptedAnswer.text"],
+        "recommended": ["mainEntity.@type", "mainEntity.name", "mainEntity.acceptedAnswer",
+                        "mainEntity.acceptedAnswer.text"],
     },
     "ImageObject": {
         "required": ["@type", "contentUrl"],
@@ -62,11 +66,13 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     },
     "JobPosting": {
         "required": ["@type", "title", "description", "hiringOrganization", "jobLocation", "datePosted"],
-        "recommended": ["validThrough", "employmentType", "baseSalary", "hiringOrganization.name", "hiringOrganization.sameAs"],
+        "recommended": ["validThrough", "employmentType", "baseSalary", "hiringOrganization.name",
+                        "hiringOrganization.sameAs"],
     },
     "LocalBusiness": {
         "required": ["@type", "name", "address"],
-        "recommended": ["address.@type", "address.streetAddress", "address.addressLocality", "address.addressCountry", "telephone", "url", "openingHours", "geo", "priceRange", "image"],
+        "recommended": ["address.@type", "address.streetAddress", "address.addressLocality", "address.addressCountry",
+                        "telephone", "url", "openingHours", "geo", "priceRange", "image"],
     },
     "MathSolver": {
         "required": ["@type", "name", "potentialAction"],
@@ -90,15 +96,18 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     },
     "QAPage": {
         "required": ["@type", "mainEntity"],
-        "recommended": ["mainEntity.@type", "mainEntity.name", "mainEntity.acceptedAnswer", "mainEntity.suggestedAnswer"],
+        "recommended": ["mainEntity.@type", "mainEntity.name", "mainEntity.acceptedAnswer",
+                        "mainEntity.suggestedAnswer"],
     },
     "Recipe": {
-        "required": ["@type", "name", "image", "author", "datePublished", "description", "recipeIngredient", "recipeInstructions"],
+        "required": ["@type", "name", "image", "author", "datePublished", "description", "recipeIngredient",
+                     "recipeInstructions"],
         "recommended": ["prepTime", "cookTime", "totalTime", "recipeYield", "nutrition", "aggregateRating", "video"],
     },
     "Review": {
         "required": ["@type", "itemReviewed", "reviewRating", "author"],
-        "recommended": ["reviewRating.ratingValue", "reviewRating.bestRating", "author.name", "reviewBody", "publisher"],
+        "recommended": ["reviewRating.ratingValue", "reviewRating.bestRating", "author.name", "reviewBody",
+                        "publisher"],
     },
     "AggregateRating": {
         "required": ["@type", "ratingValue", "reviewCount"],
@@ -126,7 +135,8 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
     },
     "WebSite": {
         "required": ["@type", "url"],
-        "recommended": ["name", "potentialAction", "potentialAction.@type", "potentialAction.target", "potentialAction.query-input"],
+        "recommended": ["name", "potentialAction", "potentialAction.@type", "potentialAction.target",
+                        "potentialAction.query-input"],
     },
     "Person": {
         "required": ["@type", "name"],
@@ -141,40 +151,40 @@ GOOGLE_SPEC: dict[str, dict[str, list[str]]] = {
 GOOGLE_SUPPORTED_TYPES: set[str] = set(GOOGLE_SPEC.keys())
 
 # %% ../nbs/13_schema_validator.ipynb #151a03a3
-def fetch_html(url: str, timeout: int = 10) -> tuple[str, int]:
-    """Fetch raw HTML from a live URL. Returns (html, status_code)."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; seo-rat-schema-validator/1.0)"
-    }
+import httpx
+
+
+def fetch_html(url: str,  # URL to fetch
+               timeout: int = 10  # Request timeout in seconds
+               ) -> tuple[str, int]:
+    "Fetch raw HTML from a live URL. Returns (html, status_code)."
     try:
-        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp = httpx.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; seo-rat-schema-validator/1.0)"},
+                         timeout=timeout)
         return resp.text, resp.status_code
-    except requests.RequestException as e:
+    except httpx.RequestError:
         return "", 0
 
+
 # %% ../nbs/13_schema_validator.ipynb #b0c0c060
-def _get_nested(obj: dict, dotpath: str) -> Any:
-    """Get a value from a nested dict using dot notation. Returns None if missing.
-    If the value at any level is a list, checks the first element."""
-    parts = dotpath.split(".")
+def _get_nested(obj: dict,  # Schema dict to traverse
+                dotpath: str  # Dot-notated field path e.g. 'author.name'
+                ) -> Any:
+    "Get a value from a nested dict using dot notation, handling lists by checking first element."
     current = obj
-    for part in parts:
-        if isinstance(current, list):
-            current = current[0] if current else None
-        if not isinstance(current, dict):
-            return None
+    for part in dotpath.split("."):
+        if isinstance(current, list): current = current[0] if current else None
+        if not isinstance(current, dict): return None
         current = current.get(part)
     return current
 
 
-def _field_present(schema: dict, field: str) -> bool:
-    """Check if a field (possibly dot-notated) is present and non-empty in the schema."""
+def _field_present(schema: dict,  # Schema dict
+                   field: str  # Field name or dot-notated path
+                   ) -> bool:
+    "Check if a field is present and non-empty in a schema dict."
     val = _get_nested(schema, field)
-    if val is None:
-        return False
-    if isinstance(val, (str, list, dict)):
-        return bool(val)
-    return True
+    return bool(val) if val is not None else False
 
 
 def extract_jsonld_schemas(html: str) -> list[dict]:
@@ -198,20 +208,19 @@ def extract_jsonld_schemas(html: str) -> list[dict]:
     return schemas
 
 
-def extract_microdata_schemas(html: str) -> list[dict]:
-    """Extract Microdata itemscope blocks from HTML as flat dicts."""
+def extract_microdata_schemas(html: str  # Raw HTML content
+                              ) -> list[dict]:
+    "Extract Microdata itemscope blocks from HTML as flat dicts."
     soup = BeautifulSoup(html, "html.parser")
     schemas = []
     for item in soup.find_all(attrs={"itemscope": True, "itemtype": True}):
-        raw: dict[str, Any] = {}
         itemtype = item.get("itemtype", "")
-        schema_type = itemtype.split("/")[-1] if itemtype else ""
-        raw["@type"] = schema_type
+        raw = {"@type": itemtype.split("/")[-1] if itemtype else ""}
         for prop in item.find_all(attrs={"itemprop": True}):
-            name = prop.get("itemprop")
-            value = prop.get("content") or prop.get("href") or prop.get_text(strip=True)
-            if name:
-                raw[name] = value
+            if name := prop.get("itemprop"):
+                raw[name] = (prop.get("content") or
+                             prop.get("href") or
+                             prop.get_text(strip=True))
         schemas.append({"format": "microdata", "raw": raw})
     return schemas
 
@@ -221,122 +230,69 @@ def extract_schemas(html: str) -> list[dict]:
     return extract_jsonld_schemas(html) + extract_microdata_schemas(html)
 
 # %% ../nbs/13_schema_validator.ipynb #1dc25b04
-def validate_schema(schema_block: dict) -> dict:
-    """Validate a single schema block against Google's rich result spec.
-    
-    Args:
-        schema_block: dict with keys 'format' and 'raw' (the parsed schema object)
-    
-    Returns:
-        Verbose validation result dict.
-    """
+def validate_schema(schema_block: dict  # Dict with 'format' and 'raw' keys
+                    ) -> dict:
+    "Validate a single schema block against Google's rich result spec."
     raw = schema_block.get("raw", {})
     fmt = schema_block.get("format", "unknown")
 
-    # Normalise @type — can be a string or list
     raw_type = raw.get("@type", "")
-    if isinstance(raw_type, list):
-        raw_type = raw_type[0] if raw_type else ""
-    # Strip full schema.org URL prefix if present
-    schema_type = raw_type.replace("http://schema.org/", "").replace("http://schema.org/", "")
+    if isinstance(raw_type, list): raw_type = next(iter(raw_type), "")
+    schema_type = raw_type.replace("https://schema.org/", "").replace("http://schema.org/", "")
 
     google_supported = schema_type in GOOGLE_SUPPORTED_TYPES
     spec = GOOGLE_SPEC.get(schema_type, {"required": [], "recommended": []})
 
-    fields_present = [
-        f for f in (spec["required"] + spec["recommended"])
-        if _field_present(raw, f)
+    missing_required = [f for f in spec["required"] if not _field_present(raw, f)]
+    missing_recommended = [f for f in spec["recommended"] if not _field_present(raw, f)]
+    fields_present = [f for f in spec["required"] + spec["recommended"] if _field_present(raw, f)]
+
+    warning_checks = [
+        (not schema_type,
+         "@type is missing — Google cannot identify this schema"),
+        (not google_supported and schema_type,
+         f"'{schema_type}' is not a Google rich result type — no rich snippet will be generated"),
+        (isinstance(raw.get("image"), str) and schema_type in ("Article", "Recipe", "VideoObject"),
+         "'image' should be an ImageObject or array, not a bare string"),
+        (schema_type == "Article" and isinstance(raw.get("author"), str),
+         "'author' should be a Person or Organization object, not a bare string"),
+        (schema_type == "LocalBusiness" and not raw.get("@id"),
+         "'@id' is missing — recommended for LocalBusiness to enable knowledge panel"),
+        (schema_type == "FAQPage" and isinstance(raw.get("mainEntity"), list) and not raw.get("mainEntity"),
+         "'mainEntity' is empty — FAQPage needs at least one Question"),
     ]
-    missing_required = [
-        f for f in spec["required"]
-        if not _field_present(raw, f)
-    ]
-    missing_recommended = [
-        f for f in spec["recommended"]
-        if not _field_present(raw, f)
-    ]
+    warnings = [msg for condition, msg in warning_checks if condition]
 
-    # Build warnings for common issues
-    warnings = []
-    if not schema_type:
-        warnings.append("@type is missing — Google cannot identify this schema")
-    if not google_supported and schema_type:
-        warnings.append(f"'{schema_type}' is not a Google rich result type — no rich snippet will be generated")
-    image = raw.get("image")
-    if image and isinstance(image, str) and schema_type in ("Article", "Recipe", "VideoObject"):
-        warnings.append("'image' should be an ImageObject or array, not a bare string")
-    if schema_type == "Article" and isinstance(raw.get("author"), str):
-        warnings.append("'author' should be a Person or Organization object, not a bare string")
-    if schema_type == "LocalBusiness" and not raw.get("@id"):
-        warnings.append("'@id' is missing — recommended for LocalBusiness to enable knowledge panel")
-    if schema_type == "FAQPage":
-        entities = raw.get("mainEntity", [])
-        if isinstance(entities, list) and len(entities) == 0:
-            warnings.append("'mainEntity' is an empty list — FAQPage needs at least one Question")
+    return {"format": fmt, "type": schema_type or "(unknown)",
+            "google_supported": google_supported,
+            "is_valid": not missing_required and bool(schema_type),
+            "all_fields_in_raw": list(raw.keys()),
+            "fields_present_from_spec": fields_present,
+            "fields_missing_required": missing_required,
+            "fields_missing_recommended": missing_recommended,
+            "warnings": warnings, "raw": raw}
 
-    is_valid = len(missing_required) == 0 and bool(schema_type)
-
-    # All keys actually present in the raw object (top-level)
-    all_fields_in_raw = list(raw.keys())
-
-    return {
-        "format": fmt,
-        "type": schema_type or "(unknown)",
-        "google_supported": google_supported,
-        "is_valid": is_valid,
-        "all_fields_in_raw": all_fields_in_raw,
-        "fields_present_from_spec": fields_present,
-        "fields_missing_required": missing_required,
-        "fields_missing_recommended": missing_recommended,
-        "warnings": warnings,
-        "raw": raw,
-    }
 
 # %% ../nbs/13_schema_validator.ipynb #3268c345
-def validate_page(url: str, timeout: int = 10) -> dict:
-    """Fetch a live URL and validate all schema.org markup found on the page.
-    
-    Args:
-        url: The live page URL to validate.
-        timeout: HTTP request timeout in seconds.
-    
-    Returns:
-        Verbose dict with all schemas found and their validation results.
-    """
+def validate_page(url: str,  # Live page URL to validate
+                  timeout: int = 10  # HTTP request timeout in seconds
+                  ) -> dict:
+    "Fetch a live URL and validate all schema.org markup found on the page."
     html, status = fetch_html(url, timeout=timeout)
-
     if not html:
-        return {
-            "url": url,
-            "fetch_status": status,
-            "error": "Failed to fetch page",
-            "schemas_found": [],
-            "summary": {"total_schemas": 0, "valid_count": 0, "types_found": [], "has_google_supported": False},
-        }
-
-    raw_schemas = extract_schemas(html)
-    validated = [validate_schema(s) for s in raw_schemas]
-
-    types_found = [v["type"] for v in validated]
-    valid_count = sum(1 for v in validated if v["is_valid"])
-    has_google = any(v["google_supported"] for v in validated)
-
-    return {
-        "url": url,
-        "fetch_status": status,
-        "schemas_found": validated,
-        "summary": {
-            "total_schemas": len(validated),
-            "valid_count": valid_count,
-            "types_found": types_found,
-            "has_google_supported": has_google,
-        },
-    }
+        return {"url": url, "fetch_status": status, "error": "Failed to fetch page",
+                "schemas_found": [],
+                "summary": {"total_schemas": 0, "valid_count": 0, "types_found": [], "has_google_supported": False}}
+    validated = [validate_schema(s) for s in extract_schemas(html)]
+    return {"url": url, "fetch_status": status, "schemas_found": validated,
+            "summary": {"total_schemas": len(validated),
+                        "valid_count": sum(1 for v in validated if v["is_valid"]),
+                        "types_found": [v["type"] for v in validated],
+                        "has_google_supported": any(v["google_supported"] for v in validated)}}
 
 # %% ../nbs/13_schema_validator.ipynb #2820c15e
-def validate_pages(urls: list[str], timeout: int = 10) -> list[dict]:
-    """Validate schema markup for a list of URLs.
-    
-    Returns a list of validate_page results, one per URL.
-    """
+def validate_pages(urls: list[str],  # List of page URLs to validate
+                   timeout: int = 10  # HTTP request timeout in seconds
+                   ) -> list[dict]:
+    "Validate schema markup for a list of URLs."
     return [validate_page(url, timeout=timeout) for url in urls]

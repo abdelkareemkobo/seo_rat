@@ -6,42 +6,49 @@ __all__ = ['SOURCE_EXTS', 'url_to_relpath', 'find_source_file', 'url_to_file_pat
 
 # %% ../nbs/08_content_mapper.ipynb #f2882934
 from pathlib import Path
-from typing import Optional
 from .index_tracking import fetch_sitemap_urls
+from .gsc_client import GSCAuth
+
 
 
 # %% ../nbs/08_content_mapper.ipynb #841bcd4a
-def url_to_relpath(url: str, base_path: str, site_url: str) -> Optional[Path]:
-    try:
-        url_cleaned = url.removeprefix(site_url).removesuffix(".html")
-    except Exception as e:
-        print(f"Error processing URL: {url} with site URL: {site_url}. Error: {e}")
-        return None
+SOURCE_EXTS = (".qmd", ".md", ".ipynb", ".mdx", ".astro")
+
+
+def url_to_relpath(url:str,      # Full page URL
+                   base_path:str, # Local base directory
+                   site_url:str   # Site base URL to strip
+                  ) -> Path | None:
+    "Convert a page URL to a relative local path, stripping site URL and .html suffix."
+    url_cleaned = url.removeprefix(site_url).removesuffix(".html")
     return Path(base_path) / url_cleaned
 
-
 # %% ../nbs/08_content_mapper.ipynb #077f14e2
-SOURCE_EXTS = (".qmd", ".md", ".ipynb",".mdx",".astro")
-
-
-def find_source_file(rel_path: Path, exts=SOURCE_EXTS) -> Optional[str]:
+def find_source_file(rel_path:Path,          # Relative path without extension
+                     exts:tuple=SOURCE_EXTS  # Extensions to try in order
+                    ) -> str | None:
+    "Find first existing source file matching the path with any of the given extensions."
     for ext in exts:
         candidate = rel_path.with_suffix(ext)
-        if candidate.exists():
-            return str(candidate)
+        if candidate.exists(): return str(candidate)
     return None
 
 
+
 # %% ../nbs/08_content_mapper.ipynb #32bb9b3f
-def url_to_file_path(url: str, base_path: str, site_url: str) -> Optional[str]:
-    """Map website URL to local file path"""
+def url_to_file_path(url:str,       # Full page URL
+                     base_path:str, # Local base directory
+                     site_url:str   # Site base URL
+                    ) -> str | None:
+    "Map a website URL to its local source file path."
     rel_path = url_to_relpath(url, base_path, site_url)
     return find_source_file(rel_path) if rel_path else None
 
 
 # %% ../nbs/08_content_mapper.ipynb #d58a88b1
-def build_limax_slug_index(base_path: str) -> dict[str, str]:
-    """Build slug → filepath index using Node/limax transliteration (for Astro sites with Arabic filenames)"""
+def build_limax_slug_index(base_path:str # Local base directory
+                           ) -> dict[str, str]:
+    "Build slug→filepath index using Node/limax transliteration for Arabic Astro sites."
     import subprocess, json
     script = """
     const slugify = require('limax');
@@ -63,15 +70,16 @@ def build_limax_slug_index(base_path: str) -> dict[str, str]:
     walk(dir);
     console.log(JSON.stringify(index));
     """
-    result = subprocess.run(['node', '-e', script], capture_output=True, text=True, cwd=base_path, env={**__import__('os').environ, 'LIMAX_BASE_PATH': base_path})
-    if result.returncode != 0:
-        raise RuntimeError(f"limax slug index failed: {result.stderr}")
+    result = subprocess.run(['node', '-e', script], capture_output=True, text=True,
+                            cwd=base_path, env={**__import__('os').environ, 'LIMAX_BASE_PATH': base_path})
+    if result.returncode != 0: raise RuntimeError(f"limax slug index failed: {result.stderr}")
     return json.loads(result.stdout)
 
 
 # %% ../nbs/08_content_mapper.ipynb #997227eb
-def build_slug_index(base_path: str) -> dict[str, str]:
-    """Build a mapping of slug → filepath by reading frontmatter from all source files"""
+def build_slug_index(base_path:str # Local base directory
+                    ) -> dict[str, str]:
+    "Build slug→filepath index by reading `slug` field from frontmatter of all source files."
     import yaml
     index = {}
     for ext in SOURCE_EXTS:
@@ -79,40 +87,32 @@ def build_slug_index(base_path: str) -> dict[str, str]:
             try:
                 content = path.read_text(encoding="utf-8")
                 if content.startswith("---"):
-                    fm = content.split("---")[1]
-                    meta = yaml.safe_load(fm)
-                    slug = meta.get("slug") if meta else None
-                    if slug:
+                    meta = yaml.safe_load(content.split("---")[1])
+                    if slug := (meta or {}).get("slug"):
                         index[slug] = str(path)
-            except Exception:
-                continue
+            except Exception: continue
     return index
+
 
 
 # %% ../nbs/08_content_mapper.ipynb #4b16207c
 from .gsc_storage import normalize_url
 
-def map_all_urls_to_files(
-    base_path: str, site_url: str, urls: list[str], use_slug_index: bool = False, normalize=False, use_limax: bool = False
-) -> dict[str, str]:
-    if use_limax:
-        slug_index = build_limax_slug_index(base_path)
-        return {
-            url: slug_index[slug]
-            for url in urls
-            if (slug := url.removeprefix(site_url).removesuffix("/")) in slug_index
-        }
-    if use_slug_index:
-        slug_index = build_slug_index(base_path)
-        return {
-            url: slug_index[slug]
-            for url in urls
-            if (slug := url.removeprefix(site_url).removesuffix("/")) in slug_index
-        }
-    return {
-        normalize_url(url) if normalize else url: path
-        for url in urls
-        if (path := url_to_file_path(url, base_path, site_url))
-    }
+
+def map_all_urls_to_files(base_path:str,        # Local base directory
+                          site_url:str,          # Site base URL
+                          urls:list[str],        # List of page URLs to map
+                          mode:str="direct",     # One of: 'direct', 'slug', 'limax'
+                          normalize:bool=False   # Normalize URLs before mapping
+                         ) -> dict[str, str]:
+    "Map page URLs to local source file paths using the specified strategy."
+    if mode not in ("direct", "slug", "limax"):
+        raise ValueError(f"Invalid mode {mode!r}. Must be one of: 'direct', 'slug', 'limax'")
+    if mode in ("slug", "limax"):
+        slug_index = (build_limax_slug_index if mode == "limax" else build_slug_index)(base_path)
+        return {url: slug_index[slug] for url in urls
+                if (slug := url.removeprefix(site_url).removesuffix("/")) in slug_index}
+    return {normalize_url(url) if normalize else url: path
+            for url in urls if (path := url_to_file_path(url, base_path, site_url))}
 
 

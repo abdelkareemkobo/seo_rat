@@ -3,10 +3,10 @@
 # %% auto #0
 __all__ = ['SPECIAL_PREFIXES', 'IMAGE_EXTS', 'parse_metadata', 'parse_notebook_metadata', 'is_frontmatter', 'is_visible_code',
            'extract_notebook_content', 'remove_metadata', 'check_length', 'check_title_length', 'check_desc_length',
-           'extract_headers', 'check_content_length', 'extract_links', 'extract_images', 'imgs_missing_alts',
+           'check_content_length', 'extract_headers', 'extract_links', 'extract_images', 'imgs_missing_alts',
            'is_special_url', 'filter_internal_links', 'filter_external_links', 'normalize_text', 'detect_phone_numbers',
-           'calculate_similarity', 'get_file_paths', 'get_file_name', 'get_markdown_files', 'arabic_to_slug',
-           'map_files_to_slugs', 'get_page_content']
+           'calculate_similarity', 'get_file_paths', 'get_file_name', 'get_markdown_files', 'get_page_content',
+           'arabic_to_slug', 'map_files_to_slugs']
 
 # %% ../nbs/02_content_parser.ipynb #49f44ecd
 import re
@@ -18,96 +18,118 @@ from datetime import datetime
 
 
 # %% ../nbs/02_content_parser.ipynb #9764a51b
-def parse_metadata(content: str) -> dict:
-    """Extract metadata from content frontmatter"""
+def parse_metadata(content: str  # Raw markdown content with YAML frontmatter
+                   ) -> dict:
+    "Extract metadata from YAML frontmatter."
     yaml_section = content.split("---")[1]
     metadata = yaml.safe_load(yaml_section)
     if "title" not in metadata and "pagetitle" in metadata:
         metadata["title"] = metadata.get("pagetitle", "")
     return metadata
 
-
-
 # %% ../nbs/02_content_parser.ipynb #d40b9c62
-def parse_notebook_metadata(content: str) -> dict:
-    """Extract metadata from Jupyter notebook"""
+def parse_notebook_metadata(content: str  # Raw Jupyter notebook JSON string
+                            ) -> dict:
+    "Extract metadata from the first cell of a Jupyter notebook."
     notebook = json.loads(content)
-
-    # Check first cell for YAML frontmatter
     if notebook.get("cells"):
         first_cell = notebook["cells"][0]
         if first_cell.get("cell_type") == "markdown":
             source = "".join(first_cell.get("source", []))
             if source.startswith("---"):
                 return parse_metadata(source)
-
     return {}
 
 
 # %% ../nbs/02_content_parser.ipynb #9260fd1b
-def is_frontmatter(cell):
-    if cell.get("cell_type") =="markdown":
-        cell_text = "".join(cell.get("source",[]))
-        if cell_text.startswith("---"):
-            return True
+def is_frontmatter(cell: dict  # Notebook cell dict
+                   ) -> bool:
+    "Check if a cell is a YAML frontmatter cell."
+    if cell.get("cell_type") == "markdown":
+        return "".join(cell.get("source", [])).startswith("---")
     return False
 
 # %% ../nbs/02_content_parser.ipynb #79f5ea74
-def is_visible_code(cell, is_quarto=False):
-    if cell.get("cell_type") != "code":
-        return False
-    if not is_quarto:
-        return True
+def is_visible_code(cell: dict,  # Notebook cell dict
+                    is_quarto: bool = False  # Whether the notebook is a Quarto doc
+                    ) -> bool:
+    "Check if a code cell should be included in output."
+    if cell.get("cell_type") != "code": return False
+    if not is_quarto: return True
     cell_text = "".join(cell.get("source", []))
     return "#| echo: false" not in cell_text and "#| include: false" not in cell_text
 
 
 # %% ../nbs/02_content_parser.ipynb #d453e3e2
-def extract_notebook_content(content: str, is_quarto: bool = False) -> str:
-    notebook = json.loads(content)
-    cells = notebook.get("cells",[])
-    not_frontmatter_cells= filter(lambda c: not is_frontmatter(c),cells)
-    cells_to_include = filter(lambda c: is_visible_code(c, is_quarto) or c.get("cell_type") == "markdown"
-    , not_frontmatter_cells)
-    return "\n".join("".join(c.get("source", [])) for c in cells_to_include)
-
+def extract_notebook_content(content:str,        # Raw Jupyter notebook JSON string
+                              is_quarto:bool=False # Whether the notebook is a Quarto doc
+                             ) -> str:
+    "Extract visible markdown and code content from a Jupyter notebook."
+    cells = json.loads(content).get("cells", [])
+    cells = filter(lambda c: not is_frontmatter(c), cells)
+    cells = filter(lambda c: is_visible_code(c, is_quarto) or c.get("cell_type") == "markdown", cells)
+    return "\n".join("".join(c.get("source", [])) for c in cells)
 
 # %% ../nbs/02_content_parser.ipynb #f9460e05
 def remove_metadata(content: str) -> str:
     """Remove frontmatter from content"""
     end = content.find("---", 3)
-    return content[end + 3 :].strip() if end != -1 else content
+    return content[end + 3:].strip() if end != -1 else content
 
 
 # %% ../nbs/02_content_parser.ipynb #5a5f68e8
-def check_length(text: str, min_len: int, max_len: int) -> dict:
-    """Check if text length falls within the optimal range"""
+def check_length(text: str,  # Text to check
+                 min_len: int,  # Minimum optimal length
+                 max_len: int  # Maximum optimal length
+                 ) -> dict:
+    "Check if text length falls within the optimal range."
     length = len(text)
     return {"length": length, "optimal_length": min_len <= length <= max_len}
 
 
-def check_title_length(title: str, min_len: int = 50, max_len: int = 60) -> dict:
+def check_title_length(title: str,  # Page title to check
+                       min_len: int = 50,  # Minimum optimal length
+                       max_len: int = 60  # Maximum optimal length
+                       ) -> dict:
+    "Check if a page title length is optimal for SEO."
     length = len(title)
-    if length < min_len: status = "too_short"
-    elif length > max_len: status = "too_long"
-    else: status = "optimal"
+    if length < min_len:
+        status = "too_short"
+    elif length > max_len:
+        status = "too_long"
+    else:
+        status = "optimal"
     return {"length": length, "status": status, "min": min_len, "max": max_len}
 
 
-
-def check_desc_length(description: str, min_len: int = 150, max_len: int = 160) -> dict:
+def check_desc_length(description: str,  # Meta description to check
+                      min_len: int = 150,  # Minimum optimal length
+                      max_len: int = 160  # Maximum optimal length
+                      ) -> dict:
+    "Check if a meta description length is optimal for SEO."
     length = len(description)
-    if length == 0: status = "missing"
-    elif length < min_len: status = "too_short"
-    elif length > max_len: status = "too_long"
-    else: status = "optimal"
+    if length == 0:
+        status = "missing"
+    elif length < min_len:
+        status = "too_short"
+    elif length > max_len:
+        status = "too_long"
+    else:
+        status = "optimal"
     return {"length": length, "status": status, "min": min_len, "max": max_len}
 
+
+def check_content_length(content: str  # Page body content
+                         ) -> dict:
+    "Check if page content has sufficient word count for SEO."
+    words = len(content.split())
+    return {"word_count": words, "is_sufficient": words >= 300}
 
 
 # %% ../nbs/02_content_parser.ipynb #657150ca
-def extract_headers(file_path: str) -> list[dict]:
-    """Extract all headers with metadata"""
+def extract_headers(file_path: str  # Path to markdown file
+                    ) -> list[dict]:
+    "Extract all headers with their level, line number, content, and length."
     headings = []
     with open(file_path, "r") as file:
         for line_number, line in enumerate(file, start=1):
@@ -116,23 +138,10 @@ def extract_headers(file_path: str) -> list[dict]:
                 prefix = "#" * level + " "
                 if line.startswith(prefix):
                     content = line.strip("#").strip()
-                    headings.append(
-                        {
-                            "type": f"h{level}",
-                            "line_number": line_number,
-                            "content": content,
-                            "length": len(content),
-                        }
-                    )
+                    headings.append({"type": f"h{level}", "line_number": line_number,
+                                     "content": content, "length": len(content)})
                     break
     return headings
-
-
-# %% ../nbs/02_content_parser.ipynb #cc169660
-def check_content_length(content: str) -> dict:
-    """Count words in content"""
-    words = len(content.split())
-    return {"word_count": words, "is_sufficient": words >= 300}
 
 
 # %% ../nbs/02_content_parser.ipynb #cc56687a
@@ -170,29 +179,24 @@ def extract_links(content: str) -> dict[str, dict]:
 
 
 # %% ../nbs/02_content_parser.ipynb #902e3a86
-def extract_images(content: str) -> list[dict]:
-    """Extract images with alt text from markdown and HTML"""
-    images = []
-    # Markdown images: ![alt](url)
-    for alt, url in re.findall(r"\!\[(.*?)\]\((.*?)\)", content):
-        images.append({"alt_text": alt, "url": url})
-    # HTML images: <img src="..." alt="...">
+def extract_images(content: str  # Markdown or HTML content
+                   ) -> list[dict]:
+    "Extract images with alt text from markdown and HTML."
+    images = [{"alt_text": alt, "url": url} for alt, url in re.findall(r"\!\[(.*?)\]\((.*?)\)", content)]
     try:
         from bs4 import BeautifulSoup
-        soup = BeautifulSoup(content, "html.parser")
-        for img in soup.find_all("img"):
-            src = img.get("src", "").strip()
-            alt = img.get("alt", "").strip()
-            if src:
-                images.append({"alt_text": alt, "url": src})
+        for img in BeautifulSoup(content, "html.parser").find_all("img"):
+            if src := img.get("src", "").strip():
+                images.append({"alt_text": img.get("alt", "").strip(), "url": src})
     except Exception:
         pass
     return images
 
 
 # %% ../nbs/02_content_parser.ipynb #67a91e1b
-def imgs_missing_alts(images: list[dict]) -> list[str]:
-    """Return URLs of images missing alt text"""
+def imgs_missing_alts(images: list[dict]  # List of image dicts from `extract_images`
+                      ) -> list[str]:
+    "Return URLs of images missing alt text."
     return [img["url"] for img in images if not img.get("alt_text")]
 
 
@@ -200,139 +204,105 @@ def imgs_missing_alts(images: list[dict]) -> list[str]:
 SPECIAL_PREFIXES = ("#", "mailto:", "tel:", "javascript:")
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp")
 
-def is_special_url(url: str) -> bool:
-    """Check if URL is an anchor, mailto, tel, or javascript link"""
-    return any(url.startswith(prefix) for prefix in SPECIAL_PREFIXES)
+
+def is_special_url(url: str  # URL to check
+                   ) -> bool:
+    "Check if URL is an anchor, mailto, tel, or javascript link."
+    return any(url.startswith(p) for p in SPECIAL_PREFIXES)
 
 
-def filter_internal_links(urls: list[str], domain: str) -> list[str]:
-    """Filter for internal links (excludes images and special URLs)"""
-    internal = []
-    for url in urls:
-        if is_special_url(url) or url.lower().endswith(IMAGE_EXTS):
-            continue
-        if not url.startswith("http"):
-            internal.append(url)
-        elif urlparse(url).netloc == domain:
-            internal.append(url)
-    return internal
+def filter_internal_links(urls: list[str],  # List of URLs to filter
+                          domain: str  # Domain to match against (e.g. 'example.com')
+                          ) -> list[str]:
+    "Filter for internal links, excluding images and special URLs."
+    return [u for u in urls if not is_special_url(u)
+            and not u.lower().endswith(IMAGE_EXTS)
+            and (not u.startswith("http") or urlparse(u).netloc == domain)]
 
 
 
 # %% ../nbs/02_content_parser.ipynb #d120d701
-def filter_external_links(urls: list[str], domain: str) -> list[str]:
-    """Filter for external links only"""
+def filter_external_links(urls: list[str],  # List of URLs to filter
+                          domain: str  # Site domain to exclude
+                          ) -> list[str]:
+    "Filter for external links only, excluding images and special URLs."
     internal = filter_internal_links(urls, domain)
-    return [
-        url for url in urls
-        if url not in internal
-        and not url.lower().endswith(IMAGE_EXTS)
-        and not is_special_url(url)
-    ]
+    return [u for u in urls if u not in internal
+            and not u.lower().endswith(IMAGE_EXTS)
+            and not is_special_url(u)]
 
 # %% ../nbs/02_content_parser.ipynb #67e05771
-def normalize_text(text: str) -> str:
-    """Normalize text by removing extra whitespace"""
+def normalize_text(text: str  # Text to normalize
+                   ) -> str:
+    "Normalize text by collapsing extra whitespace."
     return re.sub(r"\s+", " ", text).strip()
 
 
 # %% ../nbs/02_content_parser.ipynb #dd856f20
-def detect_phone_numbers(text: str) -> list[str]:
-    """Extract phone numbers from text"""
+def detect_phone_numbers(text: str  # Text to search
+                         ) -> list[str]:
+    "Extract phone numbers from text."
     phone_regex = re.compile(r"(\+\d{1,3})?\s*?(\d{3})\s*?(\d{3})\s*?(\d{3,4})")
-    groups = phone_regex.findall(text)
-    return ["".join(g) for g in groups]
+    return ["".join(g) for g in phone_regex.findall(text)]
 
 
 # %% ../nbs/02_content_parser.ipynb #2b08ed7a
-def calculate_similarity(text1: str, text2: str) -> float:
-    """Calculate similarity ratio between two texts"""
+def calculate_similarity(text1:str, # First text
+                         text2:str  # Second text
+                        ) -> float:
+    "Calculate similarity ratio between two texts using SequenceMatcher."
     from difflib import SequenceMatcher
-
     return SequenceMatcher(None, text1, text2).ratio()
 
 
 # %% ../nbs/02_content_parser.ipynb #21534583
-def get_file_paths(pattern: str) -> list[str]:
-    """Get file paths matching pattern"""
+def get_file_paths(pattern: str  # Glob pattern (e.g. '**/*.md')
+                   ) -> list[str]:
+    "Get file paths matching a glob pattern."
     import glob
-
     return glob.glob(pattern, recursive=True)
 
 
 # %% ../nbs/02_content_parser.ipynb #a14b3884
-def get_file_name(file_path: str) -> str:
-    """Extract filename without extension from path"""
+def get_file_name(file_path: str  # Path to file
+                  ) -> str:
+    "Extract filename without extension from a path."
     return Path(file_path).stem
 
 
 # %% ../nbs/02_content_parser.ipynb #4094fee4
-def get_markdown_files(directory: str) -> list[str]:
-    """Get all markdown filenames (without extension) from directory"""
+def get_markdown_files(directory: str  # Directory to search
+                       ) -> list[str]:
+    "Get all markdown filenames (without extension) from a directory."
     import os
+    return [f.replace(".md", "") for f in os.listdir(directory)
+            if f.endswith(".md") and f != ".obsidian"]
 
-    return [
-        f.replace(".md", "")
-        for f in os.listdir(directory)
-        if f.endswith(".md") and f != ".obsidian"
-    ]
+
+def get_page_content(file_path: str,  # Path to markdown or notebook file
+                     is_quarto: bool = False  # Whether the notebook is a Quarto doc
+                     ) -> str:
+    "Read a file and return its text content, stripping frontmatter."
+    with open(file_path, "r") as f: raw = f.read()
+    if file_path.endswith(".ipynb"): return extract_notebook_content(raw, is_quarto=is_quarto)
+    return remove_metadata(raw)
 
 
 # %% ../nbs/02_content_parser.ipynb #b6913bca
-def arabic_to_slug(text: str) -> str:
-    """Convert Arabic text to URL-friendly slug"""
-    char_map = {
-        "ا": "a",
-        "ب": "b",
-        "ت": "t",
-        "ث": "th",
-        "ج": "j",
-        "ح": "h",
-        "خ": "kh",
-        "د": "d",
-        "ذ": "th",
-        "ر": "r",
-        "ز": "z",
-        "س": "s",
-        "ش": "sh",
-        "ص": "s",
-        "ض": "d",
-        "ط": "t",
-        "ظ": "z",
-        "ع": "",
-        "غ": "gh",
-        "ف": "f",
-        "ق": "q",
-        "ك": "k",
-        "ل": "l",
-        "م": "m",
-        "ن": "n",
-        "ه": "h",
-        "و": "w",
-        "ي": "y",
-        "ة": "h",
-        " ": "-",
-    }
-
+def arabic_to_slug(text: str  # Arabic text to convert
+                   ) -> str:
+    "Convert Arabic text to a URL-friendly slug."
+    char_map = {"ا": "a", "ب": "b", "ت": "t", "ث": "th", "ج": "j", "ح": "h", "خ": "kh", "د": "d",
+                "ذ": "th", "ر": "r", "ز": "z", "س": "s", "ش": "sh", "ص": "s", "ض": "d", "ط": "t",
+                "ظ": "z", "ع": "", "غ": "gh", "ف": "f", "ق": "q", "ك": "k", "ل": "l", "م": "m",
+                "ن": "n", "ه": "h", "و": "w", "ي": "y", "ة": "h", " ": "-"}
     slug = "".join(char_map.get(c, c) for c in text.strip().lower())
-    while "--" in slug:
-        slug = slug.replace("--", "-")
+    while "--" in slug: slug = slug.replace("--", "-")
     return slug.strip("-")
 
-
 # %% ../nbs/02_content_parser.ipynb #0e334816
-def map_files_to_slugs(directory: str) -> dict[str, str]:
-    """Map markdown filenames to URL slugs"""
-    files = get_markdown_files(directory)
-    return {filename: arabic_to_slug(filename) for filename in files}
-
-
-# %% ../nbs/02_content_parser.ipynb #cb1e7b68
-def get_page_content(file_path: str, is_quarto: bool = False) -> str:
-    """Read a file and return its text content"""
-    with open(file_path, "r") as f:
-        raw = f.read()
-    if file_path.endswith(".ipynb"):
-        return extract_notebook_content(raw, is_quarto=is_quarto)
-    return remove_metadata(raw)
+def map_files_to_slugs(directory: str  # Directory containing Arabic markdown files
+                       ) -> dict[str, str]:
+    "Map markdown filenames to their URL slugs."
+    return {f: arabic_to_slug(f) for f in get_markdown_files(directory)}
 

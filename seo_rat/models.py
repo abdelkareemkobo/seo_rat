@@ -4,21 +4,22 @@
 __all__ = ['get_all_websites', 'delete_website']
 
 # %% ../nbs/01_models.ipynb #8af54b8e
-from sqlmodel import Field, SQLModel, UniqueConstraint
+from sqlmodel import Field, SQLModel, UniqueConstraint, Session, select
 from datetime import datetime
-from .sqlite_db import SQLiteDB
+from .sqlite_db import get_session
 import re
 from pydantic import field_validator
 from pathlib import Path
 
 # %% ../nbs/01_models.ipynb #193c2559
 class Website(SQLModel, table=True):
+    "Represents a website being tracked for SEO analysis."
     __table_args__ = {"extend_existing": True}
     id: int | None = Field(default=None, primary_key=True)
-    url: str = Field(unique=True)
-    name: str
-    desc: str | None = None
-    lang: str = "en"
+    url: str = Field(unique=True)  # Unique website URL
+    name: str                       # Display name of the website
+    desc: str | None = None         # Optional description
+    lang: str = "en"                # Language code (e.g. 'en', 'ar')
     created_at: datetime = Field(default_factory=datetime.now)
 
     @field_validator("url")
@@ -46,34 +47,36 @@ class Website(SQLModel, table=True):
         return v
 
 # %% ../nbs/01_models.ipynb #c4038cd8
-def get_all_websites(session):
-    """Get all websites from database"""
-    from sqlmodel import select
-
+def get_all_websites(session:Session # Active database session
+                    ) -> list[Website]:
+    "Return all websites from the database."
     return session.exec(select(Website)).all()
 
-
 # %% ../nbs/01_models.ipynb #1be5e48c
-def delete_website(session, website_id: int):
-    from sqlmodel import delete
-
-    session.exec(delete(Website).where(Website.id == website_id))
+def delete_website(session: Session,  # Active database session
+                   website_id: int  # ID of the website to delete
+                   ) -> None:
+    "Delete a website by ID, raises ValueError if not found."
+    website = session.get(Website, website_id)
+    if website is None:
+        raise ValueError(f"Website with id {website_id} not found")
+    session.delete(website)
     session.commit()
-
 
 # %% ../nbs/01_models.ipynb #d4c8eab3
 class GSCAnalytics(SQLModel, table=True):
+    "Google Search Console analytics data for a site, query, page, and device combination."
     __table_args__ = (
         UniqueConstraint("site_url", "date", "query", "page", "country", "device"),
         {"extend_existing": True},
     )
     id: int | None = Field(default=None, primary_key=True)
-    site_url: str
-    date: str
-    query: str | None = None
-    page: str | None = None
-    country: str | None = None
-    device: str | None = None
+    site_url: str        # The verified GSC property URL
+    date: str            # Date of the analytics record (YYYY-MM-DD)
+    query: str | None = None     # Search query keyword
+    page: str | None = None      # Page URL
+    country: str | None = None   # Country code (e.g. 'usa')
+    device: str | None = None    # Device type (e.g. 'mobile')
     clicks: int = 0
     impressions: int = 0
     ctr: float = 0.0
@@ -81,16 +84,19 @@ class GSCAnalytics(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
 
 
+
 # %% ../nbs/01_models.ipynb #1fd437e0
 class IndexStatus(SQLModel, table=True):
+    "Google Search Console indexing status for a specific page."
     __table_args__ = {"extend_existing": True}
     id: int | None = Field(default=None, primary_key=True)
-    site_url: str
-    page_url: str 
-    verdict: str
-    coverage_state: str | None = None
-    last_crawl_time: str | None = None
-    indexing_state: str | None = None
-    robots_txt_state: str | None = None
+    site_url: str                          # The verified GSC property URL
+    page_url: str                          # The specific page being checked
+    verdict: str                           # Overall indexing verdict (e.g. 'PASS', 'FAIL')
+    coverage_state: str | None = None      # Coverage state from GSC
+    last_crawl_time: str | None = None     # Last time Google crawled the page
+    indexing_state: str | None = None      # Whether the page is indexed
+    robots_txt_state: str | None = None    # Robots.txt blocking status
     checked_at: datetime = Field(default_factory=datetime.now)
+
 

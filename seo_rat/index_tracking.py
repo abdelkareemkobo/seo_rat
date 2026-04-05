@@ -14,111 +14,108 @@ import httpx
 from bs4 import BeautifulSoup
 import time
 
-# %% ../nbs/06_index_tracking.ipynb #db5cae1f
-def inspect_url_status(auth: GSCAuth, site_url: str, page_url: str) -> dict:
-    """Inspect URL indexing status from GSC"""
-    service = build("searchconsole", "v1", credentials=auth.get_credentials())
-    request = {"inspectionUrl": page_url, "siteUrl": site_url, "languageCode": "en-US"}
-    response = service.urlInspection().index().inspect(body=request).execute()
-    result = response.get("inspectionResult", {}).get("indexStatusResult", {})
+from .sqlite_db import get_session
 
-    return {
-        "verdict": result.get("verdict", "UNKNOWN"),
-        "coverage_state": result.get("coverageState"),
-        "last_crawl_time": result.get("lastCrawlTime"),
-        "indexing_state": result.get("indexingState"),
-        "robots_txt_state": result.get("robotsTxtState"),
-    }
+# %% ../nbs/06_index_tracking.ipynb #db5cae1f
+def inspect_url_status(auth:GSCAuth,   # Authenticated GSCAuth instance
+                       site_url:str,   # GSC property URL
+                       page_url:str    # Page URL to inspect
+                      ) -> dict:
+    "Inspect URL indexing status from Google Search Console."
+    service = build("searchconsole", "v1", credentials=auth.get_credentials())
+    response = service.urlInspection().index().inspect(
+        body={"inspectionUrl": page_url, "siteUrl": site_url, "languageCode": "en-US"}
+    ).execute()
+    result = response.get("inspectionResult", {}).get("indexStatusResult", {})
+    return {"verdict": result.get("verdict", "UNKNOWN"),
+            "coverage_state": result.get("coverageState"),
+            "last_crawl_time": result.get("lastCrawlTime"),
+            "indexing_state": result.get("indexingState"),
+            "robots_txt_state": result.get("robotsTxtState")}
 
 
 # %% ../nbs/06_index_tracking.ipynb #4e7493ca
-def store_index_status(session: Session, auth: GSCAuth, site_url: str, page_url: str):
-    """Inspect and store URL index status as a new history row"""
-    status_data = inspect_url_status(auth, site_url, page_url)
-    record = IndexStatus(site_url=site_url, page_url=page_url, **status_data)
+def store_index_status(session:Session, # Active database session
+                       auth:GSCAuth,    # Authenticated GSCAuth instance
+                       site_url:str,    # GSC property URL
+                       page_url:str     # Page URL to inspect and store
+                      ) -> None:
+    "Inspect and store URL index status as a new history row."
+    record = IndexStatus(site_url=site_url, page_url=page_url,
+                         **inspect_url_status(auth, site_url, page_url))
     session.add(record)
     session.commit()
 
 
 # %% ../nbs/06_index_tracking.ipynb #e7b6358d
-def get_index_status(
-    session: Session,
-    site_url: str,
-    verdict: str | None = None,
-) -> list[IndexStatus]:
-    """Get latest index status per page"""
+def get_index_status(session:Session,       # Active database session
+                     site_url:str,          # GSC property URL
+                     verdict:str|None=None  # Optional verdict to filter by
+                    ) -> list[IndexStatus]:
+    "Get latest index status per page, optionally filtered by verdict."
     from sqlalchemy import func
-
-    latest = (
-        select(IndexStatus.page_url, func.max(IndexStatus.checked_at).label("max_checked"))
-        .where(IndexStatus.site_url == site_url)
-        .group_by(IndexStatus.page_url)
-        .subquery()
-    )
-
+    latest = (select(IndexStatus.page_url, func.max(IndexStatus.checked_at).label("max_checked"))
+              .where(IndexStatus.site_url == site_url)
+              .group_by(IndexStatus.page_url).subquery())
     query = select(IndexStatus).join(
-        latest,
-        (IndexStatus.page_url == latest.c.page_url) &
-        (IndexStatus.checked_at == latest.c.max_checked),
-    )
-    if verdict:
-        query = query.where(IndexStatus.verdict == verdict)
+        latest, (IndexStatus.page_url == latest.c.page_url) &
+                (IndexStatus.checked_at == latest.c.max_checked))
+    if verdict: query = query.where(IndexStatus.verdict == verdict)
     return session.exec(query).all()
 
 
 # %% ../nbs/06_index_tracking.ipynb #d4022577
-def get_not_indexed_pages(session: Session, site_url: str) -> list[IndexStatus]:
-    """Get pages that are not indexed (latest status only)"""
+def get_not_indexed_pages(session:Session, # Active database session
+                          site_url:str     # GSC property URL
+                         ) -> list[IndexStatus]:
+    "Get pages whose latest index status is not PASS."
     return [p for p in get_index_status(session, site_url) if p.verdict != "PASS"]
 
 
 # %% ../nbs/06_index_tracking.ipynb #6545d5a7
-def get_not_indexed_by_reason(session: Session, site_url: str) -> dict[str, list[IndexStatus]]:
-    """Group not-indexed pages by their coverage state reason"""
-    pages = get_not_indexed_pages(session, site_url)
-    grouped = {}
-    for page in pages:
-        reason = page.coverage_state or "Unknown"
-        grouped.setdefault(reason, []).append(page)
-    return grouped
-
+def get_not_indexed_by_reason(session:Session, # Active database session
+                               site_url:str    # GSC property URL
+                              ) -> dict[str, list[IndexStatus]]:
+    "Group not-indexed pages by their coverage state reason."
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for page in get_not_indexed_pages(session, site_url):
+        grouped[page.coverage_state or "Unknown"].append(page)
+    return dict(grouped)
 
 # %% ../nbs/06_index_tracking.ipynb #73794973
-def fetch_sitemap_urls(sitemap_url: str) -> list[str]:
-    """Fetch all URLs from sitemap XML"""
-    response = httpx.get(sitemap_url)
-    soup = BeautifulSoup(response.text, "xml")
+def fetch_sitemap_urls(sitemap_url:str # URL of the sitemap XML
+                      ) -> list[str]:
+    "Fetch all page URLs from a sitemap XML."
+    soup = BeautifulSoup(httpx.get(sitemap_url).text, "xml")
     return [loc.text for loc in soup.find_all("loc")]
 
 
 # %% ../nbs/06_index_tracking.ipynb #f514af6b
-def store_all_index_status(
-    session: Session,
-    auth: GSCAuth,
-    site_url: str,
-    sitemap_url: str,
-) -> dict:
-    """Check and store index status for all pages in sitemap"""
+def store_all_index_status(session:Session,   # Active database session
+                           auth:GSCAuth,      # Authenticated GSCAuth instance
+                           site_url:str,      # GSC property URL
+                           sitemap_url:str    # URL of the sitemap to process
+                          ) -> dict:
+    "Check and store index status for all pages in a sitemap."
     urls = fetch_sitemap_urls(sitemap_url)
-    total = len(urls)
     results = {"successful": [], "failed": []}
-
     for i, url in enumerate(urls, 1):
-        print(f"Checking {i}/{total}: {url}")
+        print(f"Checking {i}/{len(urls)}: {url}")
         try:
             store_index_status(session, auth, site_url, url)
             results["successful"].append(url)
         except Exception as e:
             results["failed"].append({"url": url, "error": str(e)})
         time.sleep(1)
-
     return results
 
 # %% ../nbs/06_index_tracking.ipynb #29f908d4
-def get_index_history(session: Session, page_url: str) -> list[IndexStatus]:
-    """Get full index status history for a page"""
+def get_index_history(session:Session, # Active database session
+                      page_url:str     # Page URL to look up
+                     ) -> list[IndexStatus]:
+    "Get full index status history for a page, newest first."
     return session.exec(
-        select(IndexStatus)
-        .where(IndexStatus.page_url == page_url)
+        select(IndexStatus).where(IndexStatus.page_url == page_url)
         .order_by(IndexStatus.checked_at.desc())
     ).all()

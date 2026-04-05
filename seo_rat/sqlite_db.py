@@ -7,9 +7,6 @@ __all__ = ['get_session']
 
 # %% ../nbs/00_sqlite.ipynb #96fa0d1b
 from sqlmodel import create_engine, Session, SQLModel
-from pathlib import Path
-from sqlalchemy.exc import DatabaseError
-from datetime import datetime
 import os
 from dotenv import load_dotenv
 
@@ -17,10 +14,11 @@ load_dotenv()
 
 
 # %% ../nbs/00_sqlite.ipynb #ed723feac521dba
-def get_session(db_url: str | None = None) -> Session:
-    "Create a SQLite database session. Uses `SEO_RAT_DB_URL` env var if `db_url` is not provided."
-    if db_url is None:
-        db_url = os.getenv("SEO_RAT_DB_URL")
+def get_session(db_url:str|None=None # Full SQLite URL, or uses `SEO_RAT_DB_URL` env var
+               ) -> Session:
+    "Create a SQLite session."
+    if db_url is None: db_url = os.getenv("SEO_RAT_DB_URL")
     engine = create_engine(db_url)
     SQLModel.metadata.create_all(engine)
     return Session(engine)
+

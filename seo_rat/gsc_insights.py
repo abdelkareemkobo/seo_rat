@@ -14,79 +14,59 @@ def apply_strftime(date: datetime):
     return date.strftime("%Y-%m-%d")
 
 
-def get_date_ranges_for_comparison(days=30):
-    period_a_start = datetime.now() - timedelta(days=3)
-    period_a_end = period_a_start - timedelta(days=days)
-    period_b_start = period_a_end
-    period_b_end = period_b_start - timedelta(days=days)
-    return (apply_strftime(period_a_start), apply_strftime(period_a_end)), (
-        apply_strftime(period_b_start),
-        apply_strftime(period_b_end),
-    )
-
+def get_date_ranges_for_comparison(days: int = 30  # Number of days per period
+                                   ) -> tuple[tuple[str, str], tuple[str, str]]:
+    "Return two consecutive date ranges for period comparison, accounting for 3-day GSC delay."
+    fmt = lambda d: d.strftime("%Y-%m-%d")
+    latest = datetime.now() - timedelta(days=3)
+    period_a_end = latest
+    period_a_start = latest - timedelta(days=days)
+    period_b_end = period_a_start
+    period_b_start = period_b_end - timedelta(days=days)
+    return (fmt(period_a_start), fmt(period_a_end)), (fmt(period_b_start), fmt(period_b_end))
 
 # %% ../nbs/12_gsc_insights.ipynb #4111809a
 from sqlmodel import Session
 from .gsc_storage import *
-from .sqlite_db import *
+from .sqlite_db import get_session
 
 # %% ../nbs/12_gsc_insights.ipynb #3bd595a4
-def compare_periods(recent: list[dict], previous: list[dict]) -> list[dict]:
-    """Compare two periods of query data and detect trends"""
+def compare_periods(recent: list[dict],  # Recent period query data
+                    previous: list[dict]  # Previous period query data
+                    ) -> list[dict]:
+    "Compare two periods of query data and return trend analysis sorted by impression change."
     prev_by_query = {r["query"]: r for r in previous}
     trends = []
     for r in recent:
-        q = r["query"]
-        p = prev_by_query.get(
-            q, {"total_clicks": 0, "total_impressions": 0, "avg_position": 100}
-        )
-
+        p = prev_by_query.get(r["query"], {"total_clicks": 0, "total_impressions": 0, "avg_position": 100})
         click_change = r["total_clicks"] - p["total_clicks"]
         impression_change = r["total_impressions"] - p["total_impressions"]
         position_change = p["avg_position"] - r["avg_position"]
-
-        trends.append(
-            {
-                "query": q,
-                "recent_clicks": r["total_clicks"],
-                "prev_clicks": p["total_clicks"],
-                "click_change": click_change,
-                "recent_impressions": r["total_impressions"],
-                "prev_impressions": p["total_impressions"],
-                "impression_change": impression_change,
-                "recent_position": r["avg_position"],
-                "prev_position": p["avg_position"],
-                "position_change": position_change,
-                "trend": "rising"
-                if impression_change > 0 and position_change > 0
-                else "declining"
-                if impression_change < 0 or position_change < 0
-                else "stable",
-            }
-        )
+        trends.append({"query": r["query"],
+                       "recent_clicks": r["total_clicks"], "prev_clicks": p["total_clicks"],
+                       "click_change": click_change,
+                       "recent_impressions": r["total_impressions"], "prev_impressions": p["total_impressions"],
+                       "impression_change": impression_change,
+                       "recent_position": r["avg_position"], "prev_position": p["avg_position"],
+                       "position_change": position_change,
+                       "trend": "rising" if impression_change > 0 and position_change > 0
+                       else "declining" if impression_change < 0 or position_change < 0
+                       else "stable"})
     return sorted(trends, key=lambda t: t["impression_change"], reverse=True)
 
 
 # %% ../nbs/12_gsc_insights.ipynb #9fb44a0b
-def detect_query_trends(
-    session: Session,
-    site_url: str,
-    page_path: str | None = None,
-    days: int = 30,
-    limit: int = 100,
-) -> list[dict]:
-    """Detect rising and declining queries, optionally filtered by page"""
-    (recent_start, recent_end), (prev_start, prev_end) = get_date_ranges_for_comparison(
-        days
-    )
-    recent = get_top_queries(
-        session, site_url, recent_end, recent_start, page_path=page_path, limit=limit
-    )
-    previous = get_top_queries(
-        session, site_url, prev_end, prev_start, page_path=page_path, limit=limit
-    )
-
-    return compare_periods(recent, previous)
+def detect_query_trends(session: Session,  # Active database session
+                        site_url: str,  # GSC property URL
+                        page_path: str | None = None,  # Filter by page path substring
+                        days: int = 30,  # Days per comparison period
+                        limit: int = 100  # Max queries to analyze
+                        ) -> list[dict]:
+    "Detect rising and declining queries by comparing two consecutive periods."
+    (recent_start, recent_end), (prev_start, prev_end) = get_date_ranges_for_comparison(days)
+    return compare_periods(
+        get_top_queries(session, site_url, recent_start, recent_end, page_path=page_path, limit=limit),
+        get_top_queries(session, site_url, prev_start, prev_end, page_path=page_path, limit=limit))
 
 
 # %% ../nbs/12_gsc_insights.ipynb #895c7b6d
@@ -157,54 +137,27 @@ INTENT_PATTERNS = {
 
 
 # %% ../nbs/12_gsc_insights.ipynb #3a922567
-def classify_intent(query: str):
-    for k, v in INTENT_PATTERNS.items():
-        if any(pattern in query.lower() for pattern in v):
-            return k
+def classify_intent(query: str  # Search query
+                    ) -> str:
+    "Classify query intent based on keyword patterns."
+    for intent, patterns in INTENT_PATTERNS.items():
+        if any(p in query.lower() for p in patterns): return intent
     return "informational"
 
 # %% ../nbs/12_gsc_insights.ipynb #0d16babd
-from .gsc_storage import select, GSCAnalytics, func, partial, compose
+def classify_page_intents(session: Session,  # Active database session
+                          site_url: str,  # GSC property URL
+                          start_date: str,  # Start date (YYYY-MM-DD)
+                          end_date: str,  # End date (YYYY-MM-DD)
+                          country: str | None = None,  # Filter by country code
+                          page_path: str | None = None,  # Filter by page path substring
+                          limit: int = 10  # Max rows to return
+                          ) -> list[dict]:
+    "Get top queries with intent classification."
+    return [{**row, "intent": classify_intent(row["query"])}
+            for row in get_top_queries(session, site_url, start_date, end_date,
+                                       country=country, page_path=page_path, limit=limit)]
 
-
-def classify_page_intents(
-    session: Session,
-    site_url: str,
-    start_date: str,
-    end_date: str,
-    country: str | None = None,
-    page_path: str | None = None,
-    limit: int = 10,
-) -> list[dict]:
-    """Get top performing queries, optionally filtered by page"""
-    base_query = select(
-        GSCAnalytics.query,
-        func.sum(GSCAnalytics.clicks).label("total_clicks"),
-        func.sum(GSCAnalytics.impressions).label("total_impressions"),
-        func.avg(GSCAnalytics.position).label("avg_position"),
-        func.avg(GSCAnalytics.ctr).label("avg_ctr"),
-    )
-    filters = [
-        partial(filter_site, site_url=site_url),
-        partial(filter_dates, start=start_date, end=end_date),
-    ]
-    if country:
-        filters.append(partial(filter_dimension, dimension="country", value=country))
-    if page_path:
-        filters.append(lambda q: q.where(GSCAnalytics.page.contains(page_path)))
-
-    query = (
-        compose(*filters)(base_query)
-        .where(GSCAnalytics.query.isnot(None))
-        .group_by(GSCAnalytics.query)
-        .order_by(func.sum(GSCAnalytics.clicks).desc())
-        .limit(limit)
-    )
-
-    return [
-        {**row._asdict(), "intent": classify_intent(row.query)}
-        for row in session.exec(query)
-    ]
 
 
 # %% ../nbs/12_gsc_insights.ipynb #af887a1b
@@ -236,30 +189,31 @@ STOP_WORDS = {
 }
 
 
-def query_words_in_content(query: str, content: str) -> bool:
-    """Check if all significant words from a query appear in the content"""
-    content_lower = content.lower()
+def query_words_in_content(query: str,  # Search query
+                           content: str  # Page content
+                           ) -> bool:
+    "Check if all significant words from a query appear in the content."
     words = [w for w in query.lower().split() if w not in STOP_WORDS and len(w) > 1]
-    return all(word in content_lower for word in words)
+    return all(w in content.lower() for w in words)
 
 
 # %% ../nbs/12_gsc_insights.ipynb #e4a26439
-def find_missing_queries(queries: list[dict], content: str) -> list[dict]:
-    """Find GSC queries that don't appear in the page content"""
-    # return [q for q in queries if q["query"].lower() not in content_lower]
-    return [q for q in queries if not query_words_in_content(q['query'],content)]
+def find_missing_queries(queries: list[dict],  # GSC query dicts
+                         content: str  # Page content
+                         ) -> list[dict]:
+    "Find GSC queries whose significant words don't appear in the page content."
+    return [q for q in queries if not query_words_in_content(q["query"], content)]
 
 
 # %% ../nbs/12_gsc_insights.ipynb #d722220c
-def find_green_keywords(
-    session: Session,
-    site_url: str,
-    page_path: str,
-    content: str,
-    days: int = 30,
-    limit: int = 100,
-) -> list[dict]:
-    """Find emerging keywords not yet in content"""
+def find_green_keywords(session: Session,  # Active database session
+                        site_url: str,  # GSC property URL
+                        page_path: str,  # Page path to analyze
+                        content: str,  # Page content
+                        days: int = 30,  # Days per comparison period
+                        limit: int = 100  # Max queries to analyze
+                        ) -> list[dict]:
+    "Find emerging queries not yet covered in page content."
     trends = detect_query_trends(session, site_url, page_path=page_path, days=days, limit=limit)
     rising = [t for t in trends if t["trend"] == "rising" and t["prev_impressions"] <= 5]
     return find_missing_queries(rising, content)

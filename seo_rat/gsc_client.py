@@ -16,138 +16,98 @@ from google.auth.transport.requests import Request as GoogleRequest
 
 # %% ../nbs/04_gsc_client.ipynb #c9ecc849
 class GSCAuth:
-    """Google Search Console Authentication Handler"""
+    "Google Search Console authentication handler."
+    SCOPES = [
+        "https://www.googleapis.com/auth/webmasters.readonly",
+        "https://www.googleapis.com/auth/webmasters",
+    ]
 
-    def __init__(
-        self,
-        secrets_file: str = "./client_secrets.json",
-        token_file: str = "./token.pickle",
-    ):
+    def __init__(self,
+                 secrets_file:str="./client_secrets.json", # Path to OAuth client secrets
+                 token_file:str="./token.pickle"           # Path to cached token
+                ):
         store_attr()
         self.token_file = Path(token_file)
         self.credentials = self._load_credentials()
 
     def _load_credentials(self) -> Credentials | None:
-        if self.token_file.exists():
-            with open(self.token_file, "rb") as token:
-                return pickle.load(token)
-        return None
+        "Load credentials from token file if it exists."
+        if not self.token_file.exists(): return None
+        with open(self.token_file, "rb") as f: return pickle.load(f)
 
-    def _save_credentials(self, credentials: Credentials):
-        with open(self.token_file, "wb") as token:
-            pickle.dump(credentials, token)
+    def _save_credentials(self, credentials:Credentials):
+        "Persist credentials to token file."
+        with open(self.token_file, "wb") as f: pickle.dump(credentials, f)
 
     def get_credentials(self) -> Credentials | None:
-        if not self.credentials:
-            return None
+        "Return valid credentials, refreshing if expired."
+        if not self.credentials: return None
         if self.credentials.expired:
             self.credentials.refresh(GoogleRequest())
             self._save_credentials(self.credentials)
         return self.credentials
 
     def authenticate(self):
-        flow = InstalledAppFlow.from_client_secrets_file(
-            self.secrets_file,
-            scopes=[
-                "https://www.googleapis.com/auth/webmasters.readonly",
-                "https://www.googleapis.com/auth/webmasters",
-            ],
-        )
+        "Run OAuth flow to obtain and save new credentials."
+        flow = InstalledAppFlow.from_client_secrets_file(self.secrets_file, scopes=self.SCOPES)
         self.credentials = flow.run_local_server(port=0)
         self._save_credentials(self.credentials)
 
-
 # %% ../nbs/04_gsc_client.ipynb #b490ca7b
-def get_date_range(
-    range_type: str = "today",
-    days: int | None = None,
-    months: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    history_start: str = "2002-01-01",
-) -> tuple[str, str]:
-    """Generate date range for GSC queries (accounts for 3-day delay)"""
-    latest = datetime.now() - timedelta(days=3)
+def get_date_range(range_type:str="today",       # One of: today, this_week, last_week, this_month, last_month, last_7_days, last_days, last_months, entire_history, custom
+                   days:int|None=None,           # Number of days for `last_days`
+                   months:int|None=None,         # Number of months for `last_months`
+                   start_date:str|None=None,     # Start date for `custom` (YYYY-MM-DD)
+                   end_date:str|None=None,       # End date for `custom` (YYYY-MM-DD)
+                  ) -> tuple[str, str]:
+    "Generate a date range for GSC queries, accounting for the 3-day data delay."
+    fmt = lambda d: d.strftime("%Y-%m-%d")
     today = datetime.now()
+    latest = today - timedelta(days=3)
 
     match range_type:
-        case "today":
-            d = latest.strftime("%Y-%m-%d")
-            return d, d
-        case "this_week":
-            start = today - timedelta(days=today.weekday())
-            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+        case "today":             return fmt(latest), fmt(latest)
+        case "last_7_days":       return fmt(latest - timedelta(days=7)), fmt(latest)
+        case "this_week":         return fmt(today - timedelta(days=today.weekday())), fmt(latest)
+        case "this_month":        return fmt(today.replace(day=1)), fmt(latest)
         case "last_week":
             start = today - timedelta(days=today.weekday() + 7)
-            end = start + timedelta(days=6)
-            return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
-        case "this_month":
-            start = today.replace(day=1)
-            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
+            return fmt(start), fmt(start + timedelta(days=6))
         case "last_month":
-            first_this_month = today.replace(day=1)
-            last_month_end = first_this_month - timedelta(days=1)
-            last_month_start = last_month_end.replace(day=1)
-            return last_month_start.strftime("%Y-%m-%d"), last_month_end.strftime(
-                "%Y-%m-%d"
-            )
-        case "last_7_days":
-            start = latest - timedelta(days=7)
-            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
-        case "last_days" if days:
-            start = latest - timedelta(days=days)
-            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
-        case "last_months" if months:
-            start = latest - timedelta(days=30 * months)
-            return start.strftime("%Y-%m-%d"), latest.strftime("%Y-%m-%d")
-        case "entire_history":
-            history_start = "2020-01-01"
-            return history_start, latest.strftime("%Y-%m-%d")
-
+            end = today.replace(day=1) - timedelta(days=1)
+            return fmt(end.replace(day=1)), fmt(end)
+        case "entire_history":    return "2020-01-01", fmt(latest)
+        case "last_days" if days: return fmt(latest - timedelta(days=days)), fmt(latest)
+        case "last_months" if months: return fmt(latest - timedelta(days=30 * months)), fmt(latest)
         case "custom" if start_date and end_date:
             s = datetime.strptime(start_date, "%Y-%m-%d")
             e = min(datetime.strptime(end_date, "%Y-%m-%d"), latest)
-            return s.strftime("%Y-%m-%d"), e.strftime("%Y-%m-%d")
-        case _:
-            raise ValueError("Invalid date range parameters")
+            return fmt(s), fmt(e)
+        case _: raise ValueError(f"Invalid range_type or missing parameters: {range_type!r}")
+
 
 
 # %% ../nbs/04_gsc_client.ipynb #520be733
-def fetch_gsc_data(
-    auth: GSCAuth,
-    site_url: str,
-    start_date: str,
-    end_date: str,
-    dimensions: list[str] | None = None,
-    row_limit: int = 25000,
-) -> list[dict]:
-    """Fetch data from Google Search Console"""
-    if dimensions is None:
-        dimensions = ["query", "page", "country", "device"]
-
+def fetch_gsc_data(auth:GSCAuth,                              # Authenticated GSCAuth instance
+                   site_url:str,                              # GSC property URL
+                   start_date:str,                            # Start date (YYYY-MM-DD)
+                   end_date:str,                              # End date (YYYY-MM-DD)
+                   dimensions:list[str]|None=None,            # GSC dimensions to group by
+                   row_limit:int=25000                        # Max rows to fetch
+                  ) -> list[dict]:
+    "Fetch analytics rows from Google Search Console."
+    if dimensions is None: dimensions = ["query", "page", "country", "device"]
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
-    request = {
-        "startDate": start_date,
-        "endDate": end_date,
-        "dimensions": dimensions,
-        "rowLimit": row_limit,
-    }
-    return (
-        service.searchanalytics()
-        .query(siteUrl=site_url, body=request)
-        .execute()
-        .get("rows", [])
-    )
+    body = {"startDate": start_date, "endDate": end_date, "dimensions": dimensions, "rowLimit": row_limit}
+    return service.searchanalytics().query(siteUrl=site_url, body=body).execute().get("rows", [])
 
 
 # %% ../nbs/04_gsc_client.ipynb #d8e05755
-def get_verified_sites(auth: GSCAuth) -> list[dict]:
-    """Get list of verified sites"""
+def get_verified_sites(auth:GSCAuth # Authenticated GSCAuth instance
+                      ) -> list[dict]:
+    "Get all verified GSC properties for the authenticated account."
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
-    sites_list = service.sites().list().execute()
-    return [
-        {"site_url": site["siteUrl"], "permission_level": site["permissionLevel"]}
-        for site in sites_list.get("siteEntry", [])
-        if site["permissionLevel"] != "siteUnverifiedUser"
-    ]
+    sites = service.sites().list().execute().get("siteEntry", [])
+    return [{"site_url": s["siteUrl"], "permission_level": s["permissionLevel"]}
+            for s in sites if s["permissionLevel"] != "siteUnverifiedUser"]
 

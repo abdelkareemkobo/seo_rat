@@ -12,176 +12,107 @@ from .gsc_client import get_date_range
 from .models import GSCAnalytics
 
 # %% ../nbs/15_keyword_ranking.ipynb #0e7c11c4
-def get_previous_period(start: str, end: str) -> tuple[str, str]:
-    """Return the date range immediately preceding the given range (same duration).
-
-    Args:
-        start: Start date string `"YYYY-MM-DD"`.
-        end: End date string `"YYYY-MM-DD"`.
-
-    Returns:
-        `(prev_start, prev_end)` — the prior period of equal length, ending the day before `start`.
-
-    Example: `("2026-03-01", "2026-03-07")` → `("2026-02-22", "2026-02-28")`
-    """
+def get_previous_period(start: str,  # Start date (YYYY-MM-DD)
+                        end: str  # End date (YYYY-MM-DD)
+                        ) -> tuple[str, str]:
+    "Return the date range immediately preceding the given range with equal duration."
     s = datetime.strptime(start, "%Y-%m-%d")
     e = datetime.strptime(end, "%Y-%m-%d")
     duration = e - s
-    return (s - duration - timedelta(days=1)).strftime("%Y-%m-%d"), (s - timedelta(days=1)).strftime("%Y-%m-%d")
-
-# %% ../nbs/15_keyword_ranking.ipynb #1bd3d1d6
-def _agg_query(site_url: str, keyword: str, start: str, end: str, country: str | None = None):
-    """Build an aggregated (avg position, sum clicks, sum impressions) query for one keyword."""
-    q = select(
-        func.avg(GSCAnalytics.position),
-        func.sum(GSCAnalytics.clicks),
-        func.sum(GSCAnalytics.impressions),
-    ).where(
-        GSCAnalytics.site_url == site_url,
-        GSCAnalytics.query == keyword,
-        GSCAnalytics.date.between(start, end),
-    )
-    return q.where(GSCAnalytics.country == country) if country else q
+    return ((s - duration - timedelta(days=1)).strftime("%Y-%m-%d"),
+            (s - timedelta(days=1)).strftime("%Y-%m-%d"))
 
 
-def _keyword_row(session, site_url: str, keyword: str, start: str, end: str,
-                 old_start: str, old_end: str, country: str | None) -> dict:
-    """Return a single keyword metrics dict with period-over-period position change."""
-    cur_pos, cur_clicks, cur_impr = session.exec(
-        _agg_query(site_url, keyword, start, end, country)
-    ).one()
-    prev_pos, *_ = session.exec(
-        _agg_query(site_url, keyword, old_start, old_end, country)
-    ).one()
-    change = round(cur_pos - prev_pos, 2) if cur_pos and prev_pos else None
-    return {
-        "keyword":     keyword,
-        "position":    round(cur_pos, 1) if cur_pos else None,
-        "change":      change,
-        "clicks":      cur_clicks or 0,
-        "impressions": cur_impr or 0,
-    }
+def _fetch_period_metrics(session, site_url:str, keyword:str,
+                          start:str, end:str, country:str|None=None) -> tuple:
+    "Fetch avg position, total clicks, total impressions for a keyword in a date range."
+    q = select(func.avg(GSCAnalytics.position),
+               func.sum(GSCAnalytics.clicks),
+               func.sum(GSCAnalytics.impressions)
+              ).where(GSCAnalytics.site_url == site_url,
+                      GSCAnalytics.query == keyword,
+                      GSCAnalytics.date.between(start, end))
+    if country: q = q.where(GSCAnalytics.country == country)
+    return session.exec(q).first() or (None, None, None)
 
 
-def get_keyword_rankings(
-    session,
-    site_url: str,
-    keywords: list[str],
-    range_type: str = "last_7_days",
-    country: str | None = None,
-) -> list[dict]:
-    """Get aggregated ranking metrics for keywords with period-over-period change.
+def _build_keyword_ranking(session, site_url:str, keyword:str,
+                           start:str, end:str, prev_start:str, prev_end:str,
+                           country:str|None=None) -> dict:
+    "Build a keyword ranking dict with current metrics and position change vs previous period."
+    cur_pos, clicks, impressions = _fetch_period_metrics(session, site_url, keyword, start, end, country)
+    prev_pos = _fetch_period_metrics(session, site_url, keyword, prev_start, prev_end, country)[0]
+    return {"keyword": keyword,
+            "position": round(cur_pos, 1) if cur_pos else None,
+            "change": round(cur_pos - prev_pos, 2) if cur_pos and prev_pos else None,
+            "clicks": clicks or 0,
+            "impressions": impressions or 0}
 
-    Args:
-        session: SQLModel session from `SQLiteDB().get_session()`.
-        site_url: GSC property, e.g. `"sc-domain:example.com"`.
-        keywords: Query strings to look up.
-        range_type: `"last_7_days"` · `"last_month"` · `"this_month"` · `"last_week"` ·
-            `"last_days"` · `"last_months"` · `"entire_history"` · `"custom"`.
-        country: ISO 3166-1 alpha-3 lowercase, e.g. `"sau"` `"egy"` `"are"` `"usa"`.
 
-    Returns:
-        `[{"keyword", "position", "change", "clicks", "impressions"}]`
-        where `change` = current − previous position (negative = improved).
-    """
+def get_keyword_rankings(session,  # Active database session
+                         site_url: str,  # GSC property URL
+                         keywords: list[str],  # Keywords to look up
+                         range_type: str = "last_7_days",  # Date range type
+                         country: str | None = None  # ISO 3166-1 alpha-3 country code
+                         ) -> list[dict]:
+    "Get aggregated ranking metrics for keywords with period-over-period position change."
     start, end = get_date_range(range_type=range_type)
-    old_start, old_end = get_previous_period(start, end)
-    return [
-        _keyword_row(session, site_url, kw, start, end, old_start, old_end, country)
-        for kw in keywords
-    ]
-
-# %% ../nbs/15_keyword_ranking.ipynb #2c9650f2
-def _daily_query(site_url: str, keywords: list[str], start: str, end: str,
-                 country: str | None = None):
-    """Build a raw daily rows query for multiple keywords."""
-    q = select(
-        GSCAnalytics.date,
-        GSCAnalytics.query,
-        GSCAnalytics.position,
-        GSCAnalytics.clicks,
-        GSCAnalytics.impressions,
-    ).where(
-        GSCAnalytics.site_url == site_url,
-        GSCAnalytics.query.in_(keywords),
-        GSCAnalytics.date.between(start, end),
-    ).order_by(GSCAnalytics.query, GSCAnalytics.date)
-    return q.where(GSCAnalytics.country == country) if country else q
+    prev_start, prev_end = get_previous_period(start, end)
+    return [_build_keyword_ranking(session, site_url, kw, start, end, prev_start, prev_end, country)
+            for kw in keywords]
 
 
-def _row_to_dict(r) -> dict:
-    return {"date": r.date, "keyword": r.query, "position": r.position,
-            "clicks": r.clicks, "impressions": r.impressions}
+
+# %% ../nbs/15_keyword_ranking.ipynb #19ba9bc51e180d17
+def _fetch_daily_rankings(session, site_url: str, keywords: list[str],
+                          start: str, end: str, country: str | None = None) -> list[dict]:
+    "Fetch raw daily position, clicks and impressions rows for multiple keywords."
+    q = select(GSCAnalytics.date, GSCAnalytics.query, GSCAnalytics.position,
+               GSCAnalytics.clicks, GSCAnalytics.impressions
+               ).where(GSCAnalytics.site_url == site_url,
+                       GSCAnalytics.query.in_(keywords),
+                       GSCAnalytics.date.between(start, end)
+                       ).order_by(GSCAnalytics.query, GSCAnalytics.date)
+    if country: q = q.where(GSCAnalytics.country == country)
+    return [{"date": r.date, "keyword": r.query, "position": r.position,
+             "clicks": r.clicks, "impressions": r.impressions}
+            for r in session.exec(q)]
 
 
-def get_keyword_rankings_daily(
-    session,
-    site_url: str,
-    keywords: list[str],
-    range_type: str = "last_7_days",
-    country: str | None = None,
-) -> list[dict]:
-    """Fetch daily position, clicks, and impressions per keyword — for trend charts.
-
-    Args:
-        session: SQLModel session from `SQLiteDB().get_session()`.
-        site_url: GSC property, e.g. `"sc-domain:example.com"`.
-        keywords: Query strings to look up.
-        range_type: Same options as `get_keyword_rankings`.
-        country: ISO 3166-1 alpha-3 lowercase, e.g. `"sau"`. `None` = all countries.
-
-    Returns:
-        `[{"date", "keyword", "position", "clicks", "impressions"}]` sorted by keyword, date.
-    """
+def get_keyword_rankings_daily(session,  # Active database session
+                               site_url: str,  # GSC property URL
+                               keywords: list[str],  # Keywords to look up
+                               range_type: str = "last_7_days",  # Date range type
+                               country: str | None = None  # ISO 3166-1 alpha-3 country code
+                               ) -> list[dict]:
+    "Fetch daily ranking metrics per keyword for trend charts."
     start, end = get_date_range(range_type=range_type)
-    rows = session.exec(_daily_query(site_url, keywords, start, end, country)).all()
-    return [_row_to_dict(r) for r in rows]
+    return _fetch_daily_rankings(session, site_url, keywords, start, end, country)
+
 
 # %% ../nbs/15_keyword_ranking.ipynb #6d18dfa0
-def plot_keyword_rankings(results: list[dict]) -> alt.VConcatChart:
-    """Plot keyword position and clicks over time.
-
-    Args:
-        results: Output of `get_keyword_rankings_daily()`.
-
-    Returns:
-        Two-panel `alt.VConcatChart`: position line (top) + clicks bar (bottom).
-
-    Example::
-
-        plot_keyword_rankings(get_keyword_rankings_daily(session, site_url, keywords))
-    """
+def plot_keyword_rankings(results: list[dict]  # Output of `get_keyword_rankings_daily`
+                          ) -> alt.VConcatChart:
+    "Plot keyword position and clicks over time as a two-panel chart."
     df = pl.DataFrame(results).with_columns(pl.col("date").str.to_date())
-
-    color   = alt.Color("keyword:N", scale=alt.Scale(scheme="tableau10"), title="Keyword")
-    x       = alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=-30))
-    tooltip = [
-        alt.Tooltip("date:T",        title="Date",        format="%b %d %Y"),
-        alt.Tooltip("keyword:N",     title="Keyword"),
-        alt.Tooltip("position:Q",    title="Position",    format=".1f"),
-        alt.Tooltip("clicks:Q",      title="Clicks"),
-        alt.Tooltip("impressions:Q", title="Impressions"),
-    ]
-
+    color = alt.Color("keyword:N", scale=alt.Scale(scheme="tableau10"), title="Keyword")
+    x = alt.X("date:T", title=None, axis=alt.Axis(format="%b %d", labelAngle=-30))
+    tooltip = [alt.Tooltip("date:T", title="Date", format="%b %d %Y"),
+               alt.Tooltip("keyword:N", title="Keyword"),
+               alt.Tooltip("position:Q", title="Position", format=".1f"),
+               alt.Tooltip("clicks:Q", title="Clicks"),
+               alt.Tooltip("impressions:Q", title="Impressions")]
     pos_chart = alt.Chart(df).mark_line(point=True, strokeWidth=2).encode(
-        x=x,
-        y=alt.Y("position:Q", scale=alt.Scale(reverse=True),
-                title="Position", axis=alt.Axis(tickMinStep=1)),
-        color=color,
-        tooltip=tooltip,
+        x=x, color=color, tooltip=tooltip,
+        y=alt.Y("position:Q", scale=alt.Scale(reverse=True), title="Position",
+                axis=alt.Axis(tickMinStep=1)),
     ).properties(title="Position Over Time", width=680, height=240)
-
     clicks_chart = alt.Chart(df).mark_bar(opacity=0.8).encode(
-        x=x,
+        x=x, color=color, tooltip=tooltip,
         y=alt.Y("clicks:Q", title="Clicks"),
-        color=color,
-        tooltip=tooltip,
     ).properties(title="Daily Clicks", width=680, height=130)
-
-    return alt.vconcat(pos_chart, clicks_chart).configure_axis(
-        labelFontSize=11, titleFontSize=12, gridOpacity=0.2,
-    ).configure_title(
-        fontSize=13, anchor="start", fontWeight="bold",
-    ).configure_view(strokeWidth=0).configure_legend(
-        orient="top", labelFontSize=11,
-    )
+    return (alt.vconcat(pos_chart, clicks_chart)
+            .configure_axis(labelFontSize=11, titleFontSize=12, gridOpacity=0.2)
+            .configure_title(fontSize=13, anchor="start", fontWeight="bold")
+            .configure_view(strokeWidth=0)
+            .configure_legend(orient="top", labelFontSize=11))
