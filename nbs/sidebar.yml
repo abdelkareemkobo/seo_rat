@@ -3,7 +3,6 @@ website:
     contents:
       - index.ipynb
       - 00_sqlite.ipynb
-      - 013_page_seo_audit.ipynb
       - 01_models.ipynb
       - 02_content_parser.ipynb
       - 03_article.ipynb
@@ -15,3 +14,6 @@ website:
       - 10_seo_content_analysis.ipynb
       - 11_seo_site_analysis.ipynb
       - 12_gsc_insights.ipynb
+      - 13_schema_validator.ipynb
+      - 14_schema_extractor.ipynb
+      - 15_keyword_ranking.ipynb
