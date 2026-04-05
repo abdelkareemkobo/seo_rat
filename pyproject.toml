@@ -46,4 +46,12 @@ version = {attr = "seo_rat.__version__"}
 include = ["seo_rat"]
 
 [tool.nbdev]
+repo = "seo_rat"
+branch = "main"
+user = "abdelkareemkobo"
+doc_host = "https://abdelkareemkobo.github.io"
+doc_baseurl = "/seo_rat/"
+git_url = "https://github.com/abdelkareemkobo/seo_rat/"
+lib_path = "seo_rat"
+nbs_path = "nbs"
 custom_sidebar = false
