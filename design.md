@@ -8,6 +8,7 @@
 
 - [x] Refactor codebase
   - make teh auth one time not everytime make ti better flow as a desktop application 
+  - Create the Index.ipynb
 - [x] Daily GSC data sync (background script)
 - [x] Smart pull: detect last pulled day, fill missing date ranges
 - [x] Syncthing database — daily pulling into system + backup

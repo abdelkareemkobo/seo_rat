@@ -27,6 +27,8 @@ dependencies = [
     "ipykernel>=7.2.0",
     "polars>=1.39.3",
     "altair>=6.0.0",
+    "pysymbol-llm>=0.0.5",
+    "llms-txt>=0.0.6",
 ]
 
 [project.urls]
@@ -55,3 +57,4 @@ git_url = "https://github.com/abdelkareemkobo/seo_rat/"
 lib_path = "seo_rat"
 nbs_path = "nbs"
 custom_sidebar = false
+dev_requirements = ["pysymbol_llm", "llms-txt"]

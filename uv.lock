@@ -54,6 +54,15 @@ wheels = [
 ]
 
 [[package]]
+name = "astroid"
+version = "4.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/fd/24475b7cfb70298e8921bc077adb46a3fe77887422545d8a061573e130ee/astroid-4.1.2.tar.gz", hash = "sha256:d6c4a52bfcda4bbeb7359dead642b0248b90f7d9a07e690230bd86fefd6d37f1", size = 414896, upload-time = "2026-03-22T19:16:42.075Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/97/4ee9b0438e85bf0a808a89ef0be357319252ab27e1b313ae0aef7aeaa5a6/astroid-4.1.2-py3-none-any.whl", hash = "sha256:21312e682c0866dc5a309ee57e4b88ea92751b9955a58b1c31371cbbeb088707", size = 279956, upload-time = "2026-03-22T19:16:40.062Z" },
+]
+
+[[package]]
 name = "asttokens"
 version = "3.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -786,6 +795,20 @@ wheels = [
 ]
 
 [[package]]
+name = "llms-txt"
+version = "0.0.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastcore" },
+    { name = "httpx" },
+    { name = "mistletoe" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4d/16/24407cbd47d718c957f2c5f4bcca83c1a35919eaa20e8b9fb2fa223e4674/llms_txt-0.0.6.tar.gz", hash = "sha256:375c17408a8468639efba6fac22355b0ad3cbb4da20af2ffa2ee94a06669a157", size = 18258, upload-time = "2026-01-29T02:43:51.574Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/a1/c57dc309220cea5ace98624aa8d40dcd4dab5d0fdaae96ad1852f6a628a2/llms_txt-0.0.6-py3-none-any.whl", hash = "sha256:259f3bd10fb5d9756fe32571647c97f7bc9632c0185fd8388e986fdf5bdf4479", size = 14208, upload-time = "2026-01-29T02:43:50.581Z" },
+]
+
+[[package]]
 name = "lxml"
 version = "6.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -959,6 +982,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "mistletoe"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/ae/d33647e2a26a8899224f36afc5e7b7a670af30f1fd87231e9f07ca19d673/mistletoe-1.5.1.tar.gz", hash = "sha256:c5571ce6ca9cfdc7ce9151c3ae79acb418e067812000907616427197648030a3", size = 111769, upload-time = "2025-12-07T16:19:01.066Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/60/0980fefdc4d12c18c1bbab9d62852f27aded8839233c7b0a9827aaf395f5/mistletoe-1.5.1-py3-none-any.whl", hash = "sha256:d3e97664798261503f685f6a6281b092628367cf3128fc68a015a993b0c4feb3", size = 55331, upload-time = "2025-12-07T16:18:59.65Z" },
 ]
 
 [[package]]
@@ -1348,6 +1380,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pysymbol-llm"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astroid" },
+    { name = "fastcore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/b7/146b3b574f85bb635546af1556a7d0c3d55bd70a64ca08e38efa15cab219/pysymbol-llm-0.0.5.tar.gz", hash = "sha256:579d0d3d37ed391f228aa8cebc97792b790769672605a7f993b5813734d426b4", size = 9829, upload-time = "2024-09-14T05:38:45.83Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/cf/c12f9fd32a13ad4fcd31e5e1c58e9f2a62505403f9c71117d728f23d3cf0/pysymbol_llm-0.0.5-py3-none-any.whl", hash = "sha256:d37db0d94d70fa0902065c77df463169e31fa388cfbf4f88c0495b93e2445aa6", size = 9262, upload-time = "2024-09-14T05:38:44.882Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1673,9 +1718,11 @@ dependencies = [
     { name = "google-auth-oauthlib" },
     { name = "httpx" },
     { name = "ipykernel" },
+    { name = "llms-txt" },
     { name = "lxml" },
     { name = "nbdev" },
     { name = "polars" },
+    { name = "pysymbol-llm" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "sqlmodel" },
@@ -1691,9 +1738,11 @@ requires-dist = [
     { name = "google-auth-oauthlib", specifier = ">=1.2.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "ipykernel", specifier = ">=7.2.0" },
+    { name = "llms-txt", specifier = ">=0.0.6" },
     { name = "lxml", specifier = ">=5.0.0" },
     { name = "nbdev", specifier = ">=3.0.12" },
     { name = "polars", specifier = ">=1.39.3" },
+    { name = "pysymbol-llm", specifier = ">=0.0.5" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "sqlmodel", specifier = ">=0.0.24" },

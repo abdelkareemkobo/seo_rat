@@ -1,0 +1,12 @@
+# seo_rat
+
+> Open-source SEO toolkit for markdown-based static sites (Astro, Quarto, nbdev).
+
+## Docs
+
+- [API Reference](https://abdelkareemkobo.github.io/seo_rat/apilist.txt)
+
+## Optional
+
+- [GSC Storage](https://abdelkareemkobo.github.io/seo_rat/05_gsc_storage.html.md)
+- [SEO Report](https://abdelkareemkobo.github.io/seo_rat/09_seo_report.html.md)
