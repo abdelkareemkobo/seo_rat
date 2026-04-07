@@ -5,7 +5,7 @@
 
 ## Why seo_rat?
 
-![SEO Rat](nbs/seo_rat.png)
+![SEO Rat](seo_rat.png)
 
 Most SEO tools cost \$100+/month and are built for WordPress. If you
 build with Astro, Quarto, or nbdev — there’s nothing for you.

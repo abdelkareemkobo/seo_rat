@@ -1,5 +1,4 @@
 nbs/data
-_docs/
 _proc/
 qdrant_storage/
 client_secrets.json
