@@ -1,0 +1,332 @@
+[
+  {
+    "objectID": "content_parser.html",
+    "href": "content_parser.html",
+    "title": "Content Parser",
+    "section": "",
+    "text": "from fastcore.test import test_eq",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#metadata-parsing",
+    "href": "content_parser.html#metadata-parsing",
+    "title": "Content Parser",
+    "section": "metadata Parsing",
+    "text": "metadata Parsing\nUtilities for extracting frontmatter metadata from markdown and Jupyter notebook files.\n\nsource\n\nparse_metadata\n\ndef parse_metadata(\n    content:str, # Raw markdown content with YAML frontmatter\n)-&gt;dict:\n\nExtract metadata from YAML frontmatter.\n\nsource\n\n\nparse_notebook_metadata\n\ndef parse_notebook_metadata(\n    content:str, # Raw Jupyter notebook JSON string\n)-&gt;dict:\n\nExtract metadata from the first cell of a Jupyter notebook.\n\n# Test Parse metadat\nfrom pathlib import Path\n\nsample_dir = Path(\"sample\")\nif not sample_dir.exists():\n    sample_dir = Path(\"../sample\")\n\nwith open(sample_dir / \"example.md\", \"r\") as file:\n    content = file.read()\n\nmetadata = parse_metadata(content)\n\n# content is .ipynb\nwith open(sample_dir / \"design_questions.ipynb\", \"r\") as f:\n    nb_content = f.read()\nnb_metadata = parse_notebook_metadata(nb_content)\nprint(nb_metadata)\n\n{}",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#notebook-parsing",
+    "href": "content_parser.html#notebook-parsing",
+    "title": "Content Parser",
+    "section": "Notebook Parsing",
+    "text": "Notebook Parsing\nHelpers for filtering and extracting content from Jupyter notebook cells.\n\nsource\n\nis_frontmatter\n\ndef is_frontmatter(\n    cell:dict, # Notebook cell dict\n)-&gt;bool:\n\nCheck if a cell is a YAML frontmatter cell.\n\nsource\n\n\nis_visible_code\n\ndef is_visible_code(\n    cell:dict, # Notebook cell dict\n    is_quarto:bool=False, # Whether the notebook is a Quarto doc\n)-&gt;bool:\n\nCheck if a code cell should be included in output.\n\nsource\n\n\nextract_notebook_content\n\ndef extract_notebook_content(\n    content:str, # Raw Jupyter notebook JSON string\n    is_quarto:bool=False, # Whether the notebook is a Quarto doc\n)-&gt;str:\n\nExtract visible markdown and code content from a Jupyter notebook.\n\nsource\n\n\nremove_metadata\n\ndef remove_metadata(\n    content:str\n)-&gt;str:\n\nRemove frontmatter from content",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#content-checks",
+    "href": "content_parser.html#content-checks",
+    "title": "Content Parser",
+    "section": "Content Checks",
+    "text": "Content Checks\nFunctions for validating SEO-relevant content lengths for titles, descriptions, and body text.\n\nsource\n\ncheck_content_length\n\ndef check_content_length(\n    content:str, # Page body content\n)-&gt;dict:\n\nCheck if page content has sufficient word count for SEO.\n\nsource\n\n\ncheck_desc_length\n\ndef check_desc_length(\n    description:str, # Meta description to check\n    min_len:int=150, # Minimum optimal length\n    max_len:int=160, # Maximum optimal length\n)-&gt;dict:\n\nCheck if a meta description length is optimal for SEO.\n\nsource\n\n\ncheck_title_length\n\ndef check_title_length(\n    title:str, # Page title to check\n    min_len:int=50, # Minimum optimal length\n    max_len:int=60, # Maximum optimal length\n)-&gt;dict:\n\nCheck if a page title length is optimal for SEO.\n\nsource\n\n\ncheck_length\n\ndef check_length(\n    text:str, # Text to check\n    min_len:int, # Minimum optimal length\n    max_len:int, # Maximum optimal length\n)-&gt;dict:\n\nCheck if text length falls within the optimal range.",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#content-extraction",
+    "href": "content_parser.html#content-extraction",
+    "title": "Content Parser",
+    "section": "Content Extraction",
+    "text": "Content Extraction\nFunctions for extracting headers, links, and images from markdown and HTML content.\n\nsource\n\nextract_headers\n\ndef extract_headers(\n    file_path:str, # Path to markdown file\n)-&gt;list:\n\nExtract all headers with their level, line number, content, and length.\n\nheaders = extract_headers(str(sample_dir / \"example.md\"))\ntest_eq(len([h for h in headers if h[\"type\"] == \"h1\"]), 2)\ntest_eq(headers[0][\"content\"], \"This is me Kareem\")\n\n\nsource\n\n\nextract_links\n\ndef extract_links(\n    content:str\n)-&gt;dict:\n\nExtract all links with metadata\n\nlinks = extract_links(content)\ntest_eq(\"https://emdadelgaz.com\" in links, True)\ntest_eq(\"https://awazly.com/\" in links, True)\n\n\nsource\n\n\nextract_images\n\ndef extract_images(\n    content:str, # Markdown or HTML content\n)-&gt;list:\n\nExtract images with alt text from markdown and HTML.\n\nsource\n\n\nimgs_missing_alts\n\ndef imgs_missing_alts(\n    images:list, # List of image dicts from [`extract_images`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_images)\n)-&gt;list:\n\nReturn URLs of images missing alt text.\n\nimages = extract_images(content)\ntest_eq(len(images), 1)\ntest_eq(images[0][\"alt_text\"], \"Iron man photo\")",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#link-filtering",
+    "href": "content_parser.html#link-filtering",
+    "title": "Content Parser",
+    "section": "Link Filtering",
+    "text": "Link Filtering\nUtilities for classifying and filtering internal and external links.\n\nsource\n\nfilter_internal_links\n\ndef filter_internal_links(\n    urls:list, # List of URLs to filter\n    domain:str, # Domain to match against (e.g. 'example.com')\n)-&gt;list:\n\nFilter for internal links, excluding images and special URLs.\n\nsource\n\n\nis_special_url\n\ndef is_special_url(\n    url:str, # URL to check\n)-&gt;bool:\n\nCheck if URL is an anchor, mailto, tel, or javascript link.\n\nsource\n\n\nfilter_external_links\n\ndef filter_external_links(\n    urls:list, # List of URLs to filter\n    domain:str, # Site domain to exclude\n)-&gt;list:\n\nFilter for external links only, excluding images and special URLs.",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#text-utilities",
+    "href": "content_parser.html#text-utilities",
+    "title": "Content Parser",
+    "section": "Text Utilities",
+    "text": "Text Utilities\nGeneral-purpose text normalization and analysis helpers.\n\nsource\n\nnormalize_text\n\ndef normalize_text(\n    text:str, # Text to normalize\n)-&gt;str:\n\nNormalize text by collapsing extra whitespace.\n\nsource\n\n\ndetect_phone_numbers\n\ndef detect_phone_numbers(\n    text:str, # Text to search\n)-&gt;list:\n\nExtract phone numbers from text.\n\nphones = detect_phone_numbers(content)\ntest_eq(\"+966503139675\" in phones, True)\n\n\nsource\n\n\ncalculate_similarity\n\ndef calculate_similarity(\n    text1:str, # First text\n    text2:str, # Second text\n)-&gt;float:\n\nCalculate similarity ratio between two texts using SequenceMatcher.",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#file-utilities",
+    "href": "content_parser.html#file-utilities",
+    "title": "Content Parser",
+    "section": "File Utilities",
+    "text": "File Utilities\nHelpers for finding and reading markdown and notebook files.\n\nsource\n\nget_file_paths\n\ndef get_file_paths(\n    pattern:str, # Glob pattern (e.g. '**/*.md')\n)-&gt;list:\n\nGet file paths matching a glob pattern.\n\nsource\n\n\nget_file_name\n\ndef get_file_name(\n    file_path:str, # Path to file\n)-&gt;str:\n\nExtract filename without extension from a path.\n\nsource\n\n\nget_page_content\n\ndef get_page_content(\n    file_path:str, # Path to markdown or notebook file\n    is_quarto:bool=False, # Whether the notebook is a Quarto doc\n)-&gt;str:\n\nRead a file and return its text content, stripping frontmatter.\n\nsource\n\n\nget_markdown_files\n\ndef get_markdown_files(\n    directory:str, # Directory to search\n)-&gt;list:\n\nGet all markdown filenames (without extension) from a directory.",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_parser.html#arabic-slug-utilities",
+    "href": "content_parser.html#arabic-slug-utilities",
+    "title": "Content Parser",
+    "section": "Arabic Slug Utilities",
+    "text": "Arabic Slug Utilities\nHelpers for converting Arabic filenames to URL-friendly slugs.\n\nsource\n\narabic_to_slug\n\ndef arabic_to_slug(\n    text:str, # Arabic text to convert\n)-&gt;str:\n\nConvert Arabic text to a URL-friendly slug.\n\nsource\n\n\nmap_files_to_slugs\n\ndef map_files_to_slugs(\n    directory:str, # Directory containing Arabic markdown files\n)-&gt;dict:\n\nMap markdown filenames to their URL slugs.",
+    "crumbs": [
+      "Content Parser"
+    ]
+  },
+  {
+    "objectID": "content_mapper.html",
+    "href": "content_mapper.html",
+    "title": "Content Mapper",
+    "section": "",
+    "text": "source\n\nurl_to_relpath\n\ndef url_to_relpath(\n    url:str, # Full page URL\n    base_path:str, # Local base directory\n    site_url:str, # Site base URL to strip\n)-&gt;pathlib.Path | None:\n\nConvert a page URL to a relative local path, stripping site URL and .html suffix.\n\nsource\n\n\nfind_source_file\n\ndef find_source_file(\n    rel_path:Path, # Relative path without extension\n    exts:tuple=('.qmd', '.md', '.ipynb', '.mdx', '.astro'), # Extensions to try in order\n)-&gt;str | None:\n\nFind first existing source file matching the path with any of the given extensions.\n\nsource\n\n\nurl_to_file_path\n\ndef url_to_file_path(\n    url:str, # Full page URL\n    base_path:str, # Local base directory\n    site_url:str, # Site base URL\n)-&gt;str | None:\n\nMap a website URL to its local source file path.\n\nsource\n\n\nbuild_limax_slug_index\n\ndef build_limax_slug_index(\n    base_path:str, # Local base directory\n)-&gt;dict:\n\nBuild slug→filepath index using Node/limax transliteration for Arabic Astro sites.\n\nsource\n\n\nbuild_slug_index\n\ndef build_slug_index(\n    base_path:str, # Local base directory\n)-&gt;dict:\n\nBuild slug→filepath index by reading slug field from frontmatter of all source files.\n\nsource\n\n\nmap_all_urls_to_files\n\ndef map_all_urls_to_files(\n    base_path:str, # Local base directory\n    site_url:str, # Site base URL\n    urls:list, # List of page URLs to map\n    mode:str='direct', # One of: 'direct', 'slug', 'limax'\n    normalize:bool=False, # Normalize URLs before mapping\n)-&gt;dict:\n\nMap page URLs to local source file paths using the specified strategy.",
+    "crumbs": [
+      "Content Mapper"
+    ]
+  },
+  {
+    "objectID": "sqlite.html",
+    "href": "sqlite.html",
+    "title": "DB setup",
+    "section": "",
+    "text": "source\n\nget_session\n\ndef get_session(\n    db_url:str | None=None, # Full SQLite URL, or uses `SEO_RAT_DB_URL` env var\n)-&gt;Session:\n\nCreate a SQLite session.",
+    "crumbs": [
+      "DB setup"
+    ]
+  },
+  {
+    "objectID": "models.html",
+    "href": "models.html",
+    "title": "Models",
+    "section": "",
+    "text": "source\n\nget_all_websites\n\ndef get_all_websites(\n    session:Session, # Active database session\n)-&gt;list:\n\nReturn all websites from the database.\n\nsource\n\n\ndelete_website\n\ndef delete_website(\n    session:Session, # Active database session\n    website_id:int, # ID of the website to delete\n)-&gt;None:\n\nDelete a website by ID, raises ValueError if not found.\n\nsource\n\n\nadd_or_update_website\n\ndef add_or_update_website(\n    session:Session, # Active database session\n    url:str, # Website URL (must include https://)\n    name:str, # Display name for the Website\n    site_type:str, # Type: 'quarto','astro',etc.\n    desc:str='', # Optional description\n    lang:str='en', # Language code\n    content_dir:str='', # Local path to content directory\n    website_id:int | None=None, # ID to update exisiting.\n)-&gt;Website:\n\nAdd a new website or update an exisiting one.\n\nsource\n\n\nprint_websites\n\ndef print_websites(\n    websites:list\n)-&gt;None:\n\nPrint websites as a rich table.",
+    "crumbs": [
+      "Models"
+    ]
+  },
+  {
+    "objectID": "article.html",
+    "href": "article.html",
+    "title": "Article",
+    "section": "",
+    "text": "source\n\ninsert_article\n\ndef insert_article(\n    session:Session, # Active database session\n    article:Article, # Article instance to insert\n)-&gt;Article:\n\nInsert a new article into the database.\n\nsource\n\n\nget_article_by_id\n\ndef get_article_by_id(\n    session:Session, # Active database session\n    article_id:int, # Article primary key\n)-&gt;__main__.Article | None:\n\nGet an article by its ID.\n\nsource\n\n\nget_article_by_path\n\ndef get_article_by_path(\n    session:Session, # Active database session\n    file_path:str, # File path to match\n)-&gt;__main__.Article | None:\n\nGet an article by its file path.\n\nsource\n\n\nget_articles_by_website\n\ndef get_articles_by_website(\n    session:Session, # Active database session\n    website_id:int, # Parent website ID\n)-&gt;list:\n\nGet all articles belonging to a website.\n\nsource\n\n\ndelete_article\n\ndef delete_article(\n    session:Session, # Active database session\n    article_id:int, # Article to delete\n)-&gt;None:\n\nDelete an article by ID. Raises ValueError if not found.\n\nsource\n\n\nupdate_article\n\ndef update_article(\n    session:Session, # Active database session\n    article_id:int, # Article to update\n    focus_keyword:str | None=None, # New focus keyword\n    secondary_keywords:list[str] | None=None, # New secondary keywords\n    target_goal:str | None=None, # New target goal\n    url:str | None=None, # New public URL\n)-&gt;Article:\n\nUpdate article fields and set last_optimized to now. Raises ValueError if not found.\n\nfrom fastcore.test import test_eq\nfrom sqlmodel import create_engine, Session, SQLModel\nfrom seo_rat.models import Website\nfrom seo_rat.article import Article\n\n\n# create a test session\nsession = get_session()\n\n# insert\narticle = insert_article(session, Article(\n    website_id=1,\n    file_path=\"/tmp/test.md\",\n    focus_keyword=\"seo\",\n    url=\"https://example.com/test\"\n))\nprint(\"inserted:\", article)\n\n# get by id\nprint(\"by id:\", get_article_by_id(session, article.id))\n\n# get by path\nprint(\"by path:\", get_article_by_path(session, \"/tmp/test.md\"))\n\n# get by website\n# print(\"by website:\", get_articles_by_website(session, 1))\n\n# update\nupdated = update_article(session, article.id, focus_keyword=\"seo tools\", target_goal=\"rank #1\")\nprint(\"updated:\", updated)\n\n# delete\ndelete_article(session, article.id)\nprint(\"deleted, verify gone:\", get_article_by_id(session, article.id))\n\ninserted: focus_keyword='seo' id=213 target_goal=None created_at=datetime.datetime(2026, 4, 4, 10, 39, 16, 204615) website_id=1 file_path='/tmp/test.md' url='https://example.com/test' secondary_keywords=None last_optimized=None\nby id: focus_keyword='seo' id=213 target_goal=None created_at=datetime.datetime(2026, 4, 4, 10, 39, 16, 204615) website_id=1 file_path='/tmp/test.md' url='https://example.com/test' secondary_keywords=None last_optimized=None\nby path: focus_keyword='seo' id=213 target_goal=None created_at=datetime.datetime(2026, 4, 4, 10, 39, 16, 204615) website_id=1 file_path='/tmp/test.md' url='https://example.com/test' secondary_keywords=None last_optimized=None\nupdated: focus_keyword='seo tools' id=213 target_goal='rank #1' created_at=datetime.datetime(2026, 4, 4, 10, 39, 16, 204615) website_id=1 file_path='/tmp/test.md' url='https://example.com/test' secondary_keywords=None last_optimized=datetime.datetime(2026, 4, 4, 10, 39, 16, 219366)\ndeleted, verify gone: None",
+    "crumbs": [
+      "Article"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "seo_rat",
+    "section": "",
+    "text": "SEO Rat\n\n\nMost SEO tools cost $100+/month and are built for WordPress. If you build with Astro, Quarto, or nbdev — there’s nothing for you.\nseo_rat is a free, open-source alternative that runs locally, uses your real Google Search Console data, and is designed to work with AI coding agents without wasting tokens.\nThere are two camps in SEO right now: 1. People stuffing content with AI-generated keywords 2. People saying AI SEO is all garbage\nWe take a third path — context-aware optimization with a human in the loop. The tool surfaces real opportunities from your data; you decide what to act on.\nThree ways to use it: - CLI for power users - Web app (coming soon, powered by HTMX) - Notebooks for experimentation (via nbdev)\nPrinciples: - Real GSC data, no artificial limits - Surface content gaps based on your site’s goals, not generic keyword stuffing - Minimal token usage — designed for coding agents - Not locked to any paid AI provider",
+    "crumbs": [
+      "seo_rat"
+    ]
+  },
+  {
+    "objectID": "index.html#why-seo_rat",
+    "href": "index.html#why-seo_rat",
+    "title": "seo_rat",
+    "section": "",
+    "text": "SEO Rat\n\n\nMost SEO tools cost $100+/month and are built for WordPress. If you build with Astro, Quarto, or nbdev — there’s nothing for you.\nseo_rat is a free, open-source alternative that runs locally, uses your real Google Search Console data, and is designed to work with AI coding agents without wasting tokens.\nThere are two camps in SEO right now: 1. People stuffing content with AI-generated keywords 2. People saying AI SEO is all garbage\nWe take a third path — context-aware optimization with a human in the loop. The tool surfaces real opportunities from your data; you decide what to act on.\nThree ways to use it: - CLI for power users - Web app (coming soon, powered by HTMX) - Notebooks for experimentation (via nbdev)\nPrinciples: - Real GSC data, no artificial limits - Surface content gaps based on your site’s goals, not generic keyword stuffing - Minimal token usage — designed for coding agents - Not locked to any paid AI provider",
+    "crumbs": [
+      "seo_rat"
+    ]
+  },
+  {
+    "objectID": "index.html#features",
+    "href": "index.html#features",
+    "title": "seo_rat",
+    "section": "Features",
+    "text": "Features\nData Sync - Pull and store GSC data locally with smart gap detection (no re-downloading existing data) - Sync multiple sites\nContent Analysis - Full site SEO report: titles, descriptions, H1/H2 structure, internal links, content freshness - Single page audit - Missing queries per page (queries you rank for but haven’t addressed in content) - Duplicate title/description detection\nKeyword Intelligence - Keyword ranking with period-over-period change - High-impression, low-ranking opportunities (seo-rat-wins) - Keyword trend over time, aggregated by day/week/month - Keyword cannibalization detection (exact + content similarity via MinHash)\nTraffic Insights - Top pages by clicks or impressions - Country traffic breakdown with click share - Date range comparison between two periods\nIndex Tracking - Check page indexing status via GSC URL Inspection API - Store and track history over time - Report non-indexed pages grouped by coverage reason",
+    "crumbs": [
+      "seo_rat"
+    ]
+  },
+  {
+    "objectID": "index.html#roadmap",
+    "href": "index.html#roadmap",
+    "title": "seo_rat",
+    "section": "Roadmap",
+    "text": "Roadmap\n\nWeb UI (FastHTML + HTMX)\nBing integration (IndexNow)\nDSPy-powered Features.",
+    "crumbs": [
+      "seo_rat"
+    ]
+  },
+  {
+    "objectID": "seo_report.html",
+    "href": "seo_report.html",
+    "title": "SEO Report",
+    "section": "",
+    "text": "source",
+    "crumbs": [
+      "SEO Report"
+    ]
+  },
+  {
+    "objectID": "seo_report.html#delete-articles-in-wrong-website",
+    "href": "seo_report.html#delete-articles-in-wrong-website",
+    "title": "SEO Report",
+    "section": "Delete Articles in wrong Website",
+    "text": "Delete Articles in wrong Website\n\nsource\n\nfind_duplicate_metadata\n\ndef find_duplicate_metadata(\n    session:Session, # Active database session\n    field:str, # Metadata field to check\n    website_id:int, # Parent website ID\n    similarity_threshold:float=0.9, # Minimum similarity to flag\n)-&gt;list:\n\nFind articles with duplicate or very similar metadata field values.",
+    "crumbs": [
+      "SEO Report"
+    ]
+  },
+  {
+    "objectID": "seo_report.html#make-focuskeyword-to-be-top-query-from-gsc",
+    "href": "seo_report.html#make-focuskeyword-to-be-top-query-from-gsc",
+    "title": "SEO Report",
+    "section": "Make FocusKeyword to be Top query from GSC",
+    "text": "Make FocusKeyword to be Top query from GSC\n\nsource\n\nanalyze_links\n\ndef analyze_links(\n    content:str, # Page content\n    domain:str, # Site domain to classify links\n)-&gt;dict:\n\nAnalyze internal and external links in content.\n\nsource\n\n\ncheck_heading_structure\n\ndef check_heading_structure(\n    headers:list, # Headers from [`extract_headers`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_headers)\n)-&gt;dict:\n\nCheck heading structure for H2 presence and skipped levels.\n\nsource\n\n\nanalyze_article\n\ndef analyze_article(\n    article:Article, # Article to analyze\n    domain:str, # Site domain\n    is_quarto:bool, # Whether content is Quarto\n    title_is_h1:bool=False, # Whether title counts as H1\n    desc_field:str='description', # Frontmatter description field\n    title_field:str='title', # Frontmatter title field\n    date_field:str='date', # Frontmatter date field\n)-&gt;dict:\n\nRun all SEO checks for a single article and return its report dict.\n\nsource\n\n\ngenerate_seo_report\n\ndef generate_seo_report(\n    session:Session, website_id:int, domain:str, is_quarto:bool, title_is_h1:bool=False,\n    desc_field:str='description', title_field:str='title', date_field:str='date',\n    include_insights:bool=False, # Include query intents, trends, green keywords\n    days:int=90, # Days for insights lookback\n    query_limit:int=100, # Max queries for insights\n)-&gt;dict:\n\nGenerate a comprehensive SEO report for all articles in a website.\n\nsource\n\n\nprint_issues_report\n\ndef print_issues_report(\n    report:dict, # Result from [`generate_seo_report`](https://abdelkareemkobo.github.io/seo_rat/seo_report.html#generate_seo_report)\n)-&gt;None:\n\nPrint SEO issues sorted from most issues to fewest.",
+    "crumbs": [
+      "SEO Report"
+    ]
+  },
+  {
+    "objectID": "keyword_ranking.html",
+    "href": "keyword_ranking.html",
+    "title": "Keyword Ranking",
+    "section": "",
+    "text": "source\n\nget_keyword_rankings\n\ndef get_keyword_rankings(\n    session, # Active database session\n    site_url:str, # GSC property URL\n    keywords:list, # Keywords to look up\n    range_type:str='last_7_days', # Date range type\n    country:str | None=None, # ISO 3166-1 alpha-3 country code\n)-&gt;list:\n\nGet aggregated ranking metrics for keywords with period-over-period position change.\n\nsource\n\n\nget_previous_period\n\ndef get_previous_period(\n    start:str, # Start date (YYYY-MM-DD)\n    end:str, # End date (YYYY-MM-DD)\n)-&gt;tuple:\n\nReturn the date range immediately preceding the given range with equal duration.\n\nsource\n\n\nget_keyword_rankings_daily\n\ndef get_keyword_rankings_daily(\n    session, # Active database session\n    site_url:str, # GSC property URL\n    keywords:list, # Keywords to look up\n    range_type:str='last_7_days', # Date range type\n    days:NoneType=None, months:NoneType=None, country:str | None=None, # ISO 3166-1 alpha-3 country code\n)-&gt;list:\n\nFetch daily ranking metrics per keyword for trend charts.\n\nsource\n\n\nplot_keyword_rankings\n\ndef plot_keyword_rankings(\n    results:list, # Output of [`get_keyword_rankings_daily`](https://abdelkareemkobo.github.io/seo_rat/keyword_ranking.html#get_keyword_rankings_daily)\n)-&gt;VConcatChart:\n\nPlot keyword position and clicks over time as a two-panel chart.",
+    "crumbs": [
+      "Keyword Ranking"
+    ]
+  },
+  {
+    "objectID": "gsc_client.html",
+    "href": "gsc_client.html",
+    "title": "GSC Client",
+    "section": "",
+    "text": "source\n\nGSCAuth\n\ndef GSCAuth(\n    secrets_file:str='./client_secrets.json', # Path to OAuth client secrets\n    token_file:str='./token.pickle', # Path to cached token\n):\n\nGoogle Search Console authentication handler.\n\nsource\n\n\nget_date_range\n\ndef get_date_range(\n    range_type:str='today', days:int | None=None, # Number of days for `last_days`\n    months:int | None=None, # Number of months for `last_months`\n    start_date:str | None=None, # Start date for `custom` (YYYY-MM-DD)\n    end_date:str | None=None, # End date for `custom` (YYYY-MM-DD)\n)-&gt;tuple:\n\nGenerate a date range for GSC queries, accounting for the 3-day data delay.\n\nsource\n\n\nfetch_gsc_data\n\ndef fetch_gsc_data(\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    dimensions:list[str] | None=None, # GSC dimensions to group by\n    row_limit:int=25000, # Max rows to fetch\n)-&gt;list:\n\nFetch analytics rows from Google Search Console.\n\nsource\n\n\nget_verified_sites\n\ndef get_verified_sites(\n    auth:GSCAuth, # Authenticated GSCAuth instance\n)-&gt;list:\n\nGet all verified GSC properties for the authenticated account.",
+    "crumbs": [
+      "GSC Client"
+    ]
+  },
+  {
+    "objectID": "cli.html#indexing",
+    "href": "cli.html#indexing",
+    "title": "CLI",
+    "section": "Indexing",
+    "text": "Indexing\n\n\nprint_crawl_errors\n\ndef print_crawl_errors(\n    pages:list\n)-&gt;None:\n\nCall self as a function.\n\n\n\nprint_index_report\n\ndef print_index_report(\n    all_pages:list, grouped:dict\n)-&gt;None:\n\nCall self as a function.\n\n\n\nprint_index_check\n\ndef print_index_check(\n    status:IndexStatus\n)-&gt;None:\n\nCall self as a function.\n\n\n\nfmt_date\n\ndef fmt_date(\n    dt:str | None\n)-&gt;str:\n\nFormat ISO datetime to YYYY-MM-DD.\n\n\n\nseo_rat_index_refresh\n\ndef seo_rat_index_refresh(\n    website_id:int, # Website ID from the database\n    sitemap_url:str, # Sitemap URL to fetch and re-check\n):\n\nRefresh index status for all pages in a sitemap\n\n\n\nseo_rat_crawl_errors\n\ndef seo_rat_crawl_errors(\n    website_id:int, # Website ID from the database\n):\n\nShow pages with crawl or indexing issues\n\n\n\nseo_rat_index_report\n\ndef seo_rat_index_report(\n    website_id:int, # Website ID from the database\n    sitemap_url:str='', # Sitemap URL to refresh data (optional)\n):\n\nShow index status report grouped by reason\n\n\n\nseo_rat_index_check\n\ndef seo_rat_index_check(\n    website_id:int, # Website ID from the database\n    page_url:str, # Page URL to inspect\n):\n\nCheck and store index status for a single page",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#trends-comparsion",
+    "href": "cli.html#trends-comparsion",
+    "title": "CLI",
+    "section": "Trends & Comparsion",
+    "text": "Trends & Comparsion\n\n\nseo_rat_trend\n\ndef seo_rat_trend(\n    website_id:int, # Website ID from the database\n    keyword:str, # Keyword to track\n    range_type:str='entire_history', # Date range type\n    months:int=3, # Months for last_months range type\n    days:int=7, # Days for last_days range type\n    country:str='', # Optional country code\n):\n\nShow position trend for a keyword aggregated by period\n\n\n\naggregate_by_period\n\ndef aggregate_by_period(\n    rows:list, range_type:str, months:int=3\n)-&gt;list:\n\nAggregate daily rows by week or month depending on range.\n\n\n\nprint_trend\n\ndef print_trend(\n    keyword:str, rows:list\n)-&gt;None:\n\nCall self as a function.\n\n\n\nseo_rat_add_website\n\ndef seo_rat_add_website(\n    url:str, # Website URL (e.g., https://example.com)\n    name:str, # Display name for the website\n    site_type:str, # Type: quarto, astro, wordpress, etc.\n    desc:str='', # Optional description\n    lang:str='en', # Language code (e.g., en, ar)\n    content_dir:str='', # Local path to content directory\n    website_id:int=None, # ID to update existing website (omit to create new)\n):\n\nAdd a new website or update existing by ID\n\n\n\nseo_rat_list_websites\n\ndef seo_rat_list_websites(\n    \n):\n\nList all registered websites\n\n\n\nseo_rat_delete_website\n\ndef seo_rat_delete_website(\n    website_id:int, # Website ID to delete\n):\n\nDelete a website by ID (irreversible!)\n\n# Test: List all websites\nseo_rat_list_websites()\n\n# Test: Add a new website\nseo_rat_add_website(\n    url=\"https://test-example.com\",\n    name=\"Test Site\",\n    site_type=\"astro\",\n    desc=\"A test website\",\n    lang=\"en\"\n)\nseo_rat_list_websites()\nseo_rat_delete_website(5)\nseo_rat_list_websites()\n\n                        🌐 Websites                         \n┏━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┓\n┃ ID ┃ Name       ┃ URL                    ┃ Type   ┃ Lang ┃\n┡━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━┩\n│  1 │ Awazly     │ https://awazly.com     │ astro  │  ar  │\n│  2 │ shelid     │ https://shelid.com     │ astro  │  ar  │\n│  3 │ emdadelgaz │ https://emdadelgaz.com │ astro  │  ar  │\n│  4 │ kareemai   │ https://kareemai.com   │ quarto │  ar  │\n└────┴────────────┴────────────────────────┴────────┴──────┘\n\n\n\n✅ Website added: Test Site (ID: 5)\n\n\n\n                         🌐 Websites                          \n┏━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┓\n┃ ID ┃ Name       ┃ URL                      ┃ Type   ┃ Lang ┃\n┡━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━┩\n│  1 │ Awazly     │ https://awazly.com       │ astro  │  ar  │\n│  2 │ shelid     │ https://shelid.com       │ astro  │  ar  │\n│  3 │ emdadelgaz │ https://emdadelgaz.com   │ astro  │  ar  │\n│  4 │ kareemai   │ https://kareemai.com     │ quarto │  ar  │\n│  5 │ Test Site  │ https://test-example.com │ astro  │  en  │\n└────┴────────────┴──────────────────────────┴────────┴──────┘\n\n\n\n✅ Deleted: Test Site (ID: 5)\n\n\n\n                        🌐 Websites                         \n┏━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┓\n┃ ID ┃ Name       ┃ URL                    ┃ Type   ┃ Lang ┃\n┡━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━┩\n│  1 │ Awazly     │ https://awazly.com     │ astro  │  ar  │\n│  2 │ shelid     │ https://shelid.com     │ astro  │  ar  │\n│  3 │ emdadelgaz │ https://emdadelgaz.com │ astro  │  ar  │\n│  4 │ kareemai   │ https://kareemai.com   │ quarto │  ar  │\n└────┴────────────┴────────────────────────┴────────┴──────┘\n\n\n\n\n\n\nseo_rat_compare\n\ndef seo_rat_compare(\n    website_id:int, # Website ID from the database\n    start1:str, # First period start (YYYY-MM-DD)\n    end1:str, # First period end (YYYY-MM-DD)\n    start2:str, # Second period start (YYYY-MM-DD)\n    end2:str, # Second period end (YYYY-MM-DD)\n    page_url:str='', # Optional specific page URL to compare\n):\n\nCompare GSC metrics between two date ranges, optionally for a specific page\n\n\n\nprint_comparison\n\ndef print_comparison(\n    result:dict\n)-&gt;None:\n\nPrint date range comparison as a rich table.\n\n# Test: Compare two date ranges (use a real website_id from your DB)\nseo_rat_compare(\n    website_id=4,  # Change to real ID\n    start1=\"2025-03-01\",\n    end1=\"2025-03-31\",\n    start2=\"2025-04-01\",\n    end2=\"2025-04-05\",\n    page_url=\"https://kareemai.com/\"  # Change to real URL or omit for site-wide\n)\n\n                         📊 Page Comparison: https://kareemai.com/                          \n┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓\n┃ Metric       ┃ 2025-03-01 to 2025-03-31 ┃ 2025-04-01 to 2025-04-05 ┃              Change ┃\n┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩\n│ Clicks       │                        0 │                        0 │                  +0 │\n│ Impressions  │                        3 │                        2 │                  -1 │\n│ Avg Position │                    17.67 │                      4.5 │ -13.170000000000002 │\n│ Avg CTR %    │                        0 │                        0 │                   - │\n└──────────────┴──────────────────────────┴──────────────────────────┴─────────────────────┘\n\n\n\n\n\n\nseo_rat_country_breakdown\n\ndef seo_rat_country_breakdown(\n    website_id:int, # Website ID from the database\n    range_type:str='last_month', # Date range type\n    start_date:str='', # Custom start date (YYYY-MM-DD)\n    end_date:str='', # Custom end date (YYYY-MM-DD)\n    page_url:str='', # Optional specific page URL to filter\n    limit:int=20, # Number of top countries to show\n):\n\nShow traffic breakdown by country, optionally for a specific page\n\n\n\nprint_country_breakdown\n\ndef print_country_breakdown(\n    rows:list\n)-&gt;None:\n\nPrint country breakdown as a rich table.\n\n# Test: Country breakdown (use a real website_id from your DB)\nseo_rat_country_breakdown(\n    website_id=1,  # Change to real ID\n    limit=20\n)\n\nseo_rat_country_breakdown(\n    website_id=4,  # Change to real ID\n    range_type=\"last_month\",\n    page_url=\"https://kareemai.com/blog/posts/speech_recognition/muaalm_quran_chance.html\",  # Change to real URL or omit for site-wide\n    limit=10  # Show top 10 countries\n)\n\n                   🌍 Traffic by Country                    \n┏━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━┓\n┃ Country ┃     Clicks ┃ Impressions ┃ Avg Position ┃  CTR ┃\n┡━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━┩\n│ sau     │ 72 (85.7%) │      18,763 │         25.6 │ 0.3% │\n│ egy     │   8 (9.5%) │       2,440 │         23.8 │ 0.3% │\n│ lby     │   1 (1.2%) │          43 │          5.2 │ 2.9% │\n│ kwt     │   1 (1.2%) │         403 │         17.1 │ 0.5% │\n│ esp     │   1 (1.2%) │          15 │         20.3 │ 6.7% │\n│ are     │   1 (1.2%) │          94 │         19.1 │ 1.2% │\n│ zaf     │   0 (0.0%) │           1 │          9.0 │ 0.0% │\n│ yem     │   0 (0.0%) │         119 │          7.0 │ 0.0% │\n│ vnm     │   0 (0.0%) │          17 │         40.0 │ 0.0% │\n│ uzb     │   0 (0.0%) │           1 │          6.0 │ 0.0% │\n│ usa     │   0 (0.0%) │         111 │         21.3 │ 0.0% │\n│ ukr     │   0 (0.0%) │           1 │         49.0 │ 0.0% │\n│ uga     │   0 (0.0%) │           1 │         12.0 │ 0.0% │\n│ twn     │   0 (0.0%) │           1 │          8.0 │ 0.0% │\n│ tur     │   0 (0.0%) │          19 │          7.6 │ 0.0% │\n│ tun     │   0 (0.0%) │           6 │          5.5 │ 0.0% │\n│ tha     │   0 (0.0%) │           1 │         42.0 │ 0.0% │\n│ tcd     │   0 (0.0%) │           2 │          6.0 │ 0.0% │\n│ syr     │   0 (0.0%) │          88 │          5.1 │ 0.0% │\n│ swe     │   0 (0.0%) │           2 │         19.5 │ 0.0% │\n└─────────┴────────────┴─────────────┴──────────────┴──────┘\n\n\n\nTotal: 84 clicks across 20 countries\n\n\n\nNo country data found",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "gsc_storage.html",
+    "href": "gsc_storage.html",
+    "title": "GSC Storage",
+    "section": "",
+    "text": "source\n\nfilter_exclude_pages\n\ndef filter_exclude_pages(\n    query, # SQLModel query\n    exclude_pages:list, # Page path substrings to exclude\n):\n\nExclude rows where page contains any of the given substrings.\n\nsource\n\n\nfilter_dimension\n\ndef filter_dimension(\n    query, # SQLModel query\n    dimension:str, # GSCAnalytics field name\n    value:str, # Value to match\n):\n\nFilter query by a specific dimension value.\n\nsource\n\n\nfilter_dates\n\ndef filter_dates(\n    query, # SQLModel query\n    start:str, # Start date (YYYY-MM-DD)\n    end:str, # End date (YYYY-MM-DD)\n):\n\nFilter query by date range.\n\nsource\n\n\nfilter_site\n\ndef filter_site(\n    query, # SQLModel query\n    site_url:str, # GSC property URL\n):\n\nFilter query by site URL.\n\nsource\n\n\nAnalyticsSummary\n\ndef AnalyticsSummary(\n    __pydantic_self__, data:Any\n)-&gt;None:\n\n!!! abstract “Usage Documentation” Models\nA base class for creating Pydantic models.\nAttributes: class_vars: The names of the class variables defined on the model. private_attributes: Metadata about the private attributes of the model. signature: The synthesized __init__ [Signature][inspect.Signature] of the model.\n__pydantic_complete__: Whether model building is completed, or if there are still undefined fields.\n__pydantic_core_schema__: The core schema of the model.\n__pydantic_custom_init__: Whether the model has a custom `__init__` function.\n__pydantic_decorators__: Metadata containing the decorators defined on the model.\n    This replaces `Model.__validators__` and `Model.__root_validators__` from Pydantic V1.\n__pydantic_generic_metadata__: Metadata for generic models; contains data used for a similar purpose to\n    __args__, __origin__, __parameters__ in typing-module generics. May eventually be replaced by these.\n__pydantic_parent_namespace__: Parent namespace of the model, used for automatic rebuilding of models.\n__pydantic_post_init__: The name of the post-init method for the model, if defined.\n__pydantic_root_model__: Whether the model is a [`RootModel`][pydantic.root_model.RootModel].\n__pydantic_serializer__: The `pydantic-core` `SchemaSerializer` used to dump instances of the model.\n__pydantic_validator__: The `pydantic-core` `SchemaValidator` used to validate instances of the model.\n\n__pydantic_fields__: A dictionary of field names and their corresponding [`FieldInfo`][pydantic.fields.FieldInfo] objects.\n__pydantic_computed_fields__: A dictionary of computed field names and their corresponding [`ComputedFieldInfo`][pydantic.fields.ComputedFieldInfo] objects.\n\n__pydantic_extra__: A dictionary containing extra values, if [`extra`][pydantic.config.ConfigDict.extra]\n    is set to `'allow'`.\n__pydantic_fields_set__: The names of fields explicitly set during instantiation.\n__pydantic_private__: Values of private attributes set on the model instance.\n\nsource\n\n\nnormalize_url\n\ndef normalize_url(\n    url:str\n)-&gt;str:\n\nNormalize URL by decoding percent-encoding and standardizing separators\n\nsource\n\n\nparse_gsc_row\n\ndef parse_gsc_row(\n    row:dict, # Raw GSC API row\n    site_url:str, # GSC property URL\n    date:str, # Date of the row (YYYY-MM-DD)\n)-&gt;GSCAnalytics:\n\nParse a raw GSC API row into a GSCAnalytics instance.\n\nsource\n\n\nstore_gsc_data\n\ndef store_gsc_data(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    date:str, # Date of the data (YYYY-MM-DD)\n    rows:list, # Raw GSC API rows\n)-&gt;None:\n\nStore GSC rows with upsert (update on conflict).\n\nsource\n\n\nget_top_queries\n\ndef get_top_queries(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    country:str | None=None, # Filter by country code\n    page_path:str | None=None, # Filter by page path substring\n    limit:int=10, # Max rows to return\n    sort_by:str='clicks', # Sort by 'clicks' or 'impressions'\n)-&gt;list:\n\nGet top performing queries, optionally filtered by country and page.\n\nsource\n\n\nget_top_pages\n\ndef get_top_pages(\n    session:Session, site_url:str, start_date:str, end_date:str, country:str | None=None, limit:int=20,\n    sort_by:str='clicks'\n)-&gt;list:\n\nGet top performing pages by clicks or impressions.\n\nsource\n\n\nget_wins\n\ndef get_wins(\n    session:Session, site_url:str, start_date:str, end_date:str, min_impressions:int=100, min_position:float=10.0,\n    max_position:float=50.0, country:str | None=None, page_url:str | None=None, limit:int=20\n)-&gt;list:\n\nGet high-impression, low-ranking keyword opportunities.\n\nsource\n\n\nget_top_queries_excluding_pages\n\ndef get_top_queries_excluding_pages(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    exclude_pages:list, # Page substrings to exclude\n    country:str | None=None, # Filter by country code\n    limit:int=10, # Max rows to return\n)-&gt;list:\n\nGet top queries excluding specific pages.\n\nsource\n\n\nget_page_analytics\n\ndef get_page_analytics(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    page_path:str, # Partial page path to match\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n)-&gt;dict:\n\nGet aggregated analytics and top queries for a specific page.\n\nsource\n\n\nget_analytics_by_date_range\n\ndef get_analytics_by_date_range(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n)-&gt;list:\n\nGet all raw GSC analytics rows for a date range.\n\nsource\n\n\nget_trends\n\ndef get_trends(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    dimension:str | None=None, # Optional dimension to group by\n)-&gt;list:\n\nGet click/impression trends over time, optionally grouped by a dimension.\n\nsource\n\n\nget_analytics_by\n\ndef get_analytics_by(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    dimension:str, # GSCAnalytics field to filter by\n    value:str, # Value to match\n)-&gt;list:\n\nGet query-level analytics filtered by a specific dimension value.\n\nsource\n\n\nstore_single_date\n\ndef store_single_date(\n    session:Session, # Active database session\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    site_url:str, # GSC property URL\n    date:str, # Date to fetch and store (YYYY-MM-DD)\n)-&gt;int:\n\nFetch and store GSC data for a single date. Returns number of records stored.\n\n# Check what's actually stored\nstored = session.exec(select(GSCAnalytics).limit(1)).first()\nprint(f\"Query: {stored.query}\")\nprint(f\"Clicks: {stored.clicks}\")\nprint(f\"Date: {stored.date}\")\ntest_eq(stored.site_url, \"sc-domain:kareemai.com\")\n\nQuery: أنواع السباكة\nClicks: 0\nDate: 2024-11-11\n\n\n\n---------------------------------------------------------------------------\nAssertionError                            Traceback (most recent call last)\nCell In[31], line 8\n      6 print(f\"Clicks: {stored.clicks}\")\n      7 print(f\"Date: {stored.date}\")\n----&gt; 8 test_eq(stored.site_url, \"sc-domain:kareemai.com\")\n\nFile ~/Desktop/seo_rat/.venv/lib/python3.13/site-packages/fastcore/test.py:40, in test_eq(a, b)\n     38 def test_eq(a,b):\n     39     \"`test` that `a==b`\"\n---&gt; 40     test(a,b,equals, cname='==')\n\nFile ~/Desktop/seo_rat/.venv/lib/python3.13/site-packages/fastcore/test.py:30, in test(a, b, cmp, cname)\n     28 \"`assert` that `cmp(a,b)`; display inputs and `cname or cmp.__name__` if it fails\"\n     29 if cname is None: cname=cmp.__name__\n---&gt; 30 assert cmp(a,b),f\"{cname}:\\n{a}\\n{b}\"\n\nAssertionError: ==:\nsc-domain:awazly.com\nsc-domain:kareemai.com\n\n\n\n\nsource\n\n\nstore_date_range\n\ndef store_date_range(\n    session:Session, auth:GSCAuth, site_url:str, start_date:str, end_date:str\n)-&gt;dict:\n\nFetch and store GSC data for all dates in range.\n\nsource\n\n\nget_missing_dates\n\ndef get_missing_dates(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n)-&gt;list:\n\nReturn dates in range that have no stored GSC data.\n\nsource\n\n\niter_dates\n\ndef iter_dates(\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n)-&gt;list:\n\nGenerate all dates between start and end inclusive.\n\nsource\n\n\nsync_missing_dates\n\ndef sync_missing_dates(\n    session:Session, auth:GSCAuth, site_url:str, start_date:str, end_date:str\n)-&gt;dict:\n\nFetch and store GSC data for missing dates only.\n\nsource\n\n\ndaily_sync\n\ndef daily_sync(\n    session:Session, # Active database session\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    sites:list, # List of GSC property URLs to sync\n)-&gt;dict:\n\nSync missing GSC data for all sites up to today.\n\nsource\n\n\ncompare_date_ranges\n\ndef compare_date_ranges(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start1:str, # First period start date (YYYY-MM-DD)\n    end1:str, # First period end date (YYYY-MM-DD)\n    start2:str, # Second period start date (YYYY-MM-DD)\n    end2:str, # Second period end date (YYYY-MM-DD)\n    page_url:str | None=None, # Optional specific page to compare\n)-&gt;dict:\n\nCompare GSC metrics between two date ranges, optionally for a specific page.\n\nsource\n\n\nget_country_breakdown\n\ndef get_country_breakdown(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    page_url:str | None=None, # Optional specific page to filter\n    limit:int=20, # Max number of countries to return\n)-&gt;list:\n\nGet traffic metrics grouped by country, optionally for a specific page.",
+    "crumbs": [
+      "GSC Storage"
+    ]
+  },
+  {
+    "objectID": "schema_validator.html",
+    "href": "schema_validator.html",
+    "title": "Schema Validator",
+    "section": "",
+    "text": "source\n\nfetch_html\n\ndef fetch_html(\n    url:str, # URL to fetch\n    timeout:int=10, # Request timeout in seconds\n)-&gt;tuple[str, int]:\n\nFetch raw HTML from a live URL. Returns (html, status_code).\n\nsource\n\n\nextract_schemas\n\ndef extract_schemas(\n    html:str\n)-&gt;list[dict]:\n\nExtract all schema blocks (JSON-LD + Microdata) from HTML.\n\nsource\n\n\nextract_microdata_schemas\n\ndef extract_microdata_schemas(\n    html:str, # Raw HTML content\n)-&gt;list[dict]:\n\nExtract Microdata itemscope blocks from HTML as flat dicts.\n\nsource\n\n\nextract_jsonld_schemas\n\ndef extract_jsonld_schemas(\n    html:str\n)-&gt;list[dict]:\n\nExtract all JSON-LD schema blocks from HTML. Returns list of parsed dicts.\n\nsource\n\n\nvalidate_schema\n\ndef validate_schema(\n    schema_block:dict, # Dict with 'format' and 'raw' keys\n)-&gt;dict:\n\nValidate a single schema block against Google’s rich result spec.\n\nsource\n\n\nvalidate_page\n\ndef validate_page(\n    url:str, # Live page URL to validate\n    timeout:int=10, # HTTP request timeout in seconds\n)-&gt;dict:\n\nFetch a live URL and validate all schema.org markup found on the page.\n\nsource\n\n\nvalidate_pages\n\ndef validate_pages(\n    urls:list[str], # List of page URLs to validate\n    timeout:int=10, # HTTP request timeout in seconds\n)-&gt;list[dict]:\n\nValidate schema markup for a list of URLs.",
+    "crumbs": [
+      "Schema Validator"
+    ]
+  },
+  {
+    "objectID": "seo_content_analysis.html",
+    "href": "seo_content_analysis.html",
+    "title": "SEO Content Analysis",
+    "section": "",
+    "text": "from seo_rat.article import Article\n# | export\nfrom seo_rat.content_parser import extract_headers, remove_metadata, get_page_content\nfrom seo_rat.gsc_client import get_date_range\nsource",
+    "crumbs": [
+      "SEO Content Analysis"
+    ]
+  },
+  {
+    "objectID": "seo_content_analysis.html#future-update",
+    "href": "seo_content_analysis.html#future-update",
+    "title": "SEO Content Analysis",
+    "section": "Future Update",
+    "text": "Future Update\n\nAdd DSPY to filter htre nosie from the cannibalization\n\nInput: query string + website description/niche\nOutput: is_relevant: bool + reason: str\n\n\n\nsource\n\ncheck_h1_count\n\ndef check_h1_count(\n    headers:list, # Headers from [`extract_headers`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_headers)\n    title:str | None=None, # Frontmatter title (for Quarto)\n    title_is_h1:bool=False, # Whether title counts as H1\n)-&gt;dict:\n\nCheck H1 count — for Quarto, the title frontmatter field acts as H1.\n\nsource\n\n\nkeyword_in_first_section\n\ndef keyword_in_first_section(\n    content:str, # Page content\n    keyword:str, # Keyword to search for\n    percent:int=10, # Percentage of content to check\n)-&gt;bool:\n\nCheck if keyword appears in the first X% of content.\n\nsource\n\n\ncheck_paragraph_length\n\ndef check_paragraph_length(\n    content:str, # Page content\n)-&gt;dict:\n\nCheck average number of sentences per paragraph.\n\nsource\n\n\nkeyword_in_metadata\n\ndef keyword_in_metadata(\n    metadata:dict, # Parsed frontmatter dict\n    keyword:str, # Keyword to search for\n    desc_field:str='description', # Frontmatter description field\n)-&gt;dict:\n\nCheck if keyword appears in title and description metadata fields.\n\nsource\n\n\nkeyword_in_alt_texts\n\ndef keyword_in_alt_texts(\n    images:list, # Images from [`extract_images`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_images)\n    keyword:str, # Keyword to search for\n)-&gt;bool:\n\nCheck if keyword appears in any image alt text.\n\nsource\n\n\nanalyze_header_distribution\n\ndef analyze_header_distribution(\n    headers:list, # Headers from [`extract_headers`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_headers)\n)-&gt;dict:\n\nAnalyze header type distribution as counts and percentages.\n\nsource\n\n\ncheck_keyword_placement\n\ndef check_keyword_placement(\n    keyword:str | None, # Focus keyword\n    metadata:dict, # Parsed frontmatter dict\n    headers:list, # Headers from [`extract_headers`](https://abdelkareemkobo.github.io/seo_rat/content_parser.html#extract_headers)\n    content:str, # Page content\n    url:str, # Page URL\n    desc_field:str='description', # Frontmatter description field\n    title_is_h1:bool=False, # Whether title counts as H1\n)-&gt;dict:\n\nCheck where the focus keyword appears across page elements.\n\nsource\n\n\ncontent_freshness\n\ndef content_freshness(\n    last_updated:str, # Last updated date (YYYY-MM-DD)\n    days:int=180, # Max days to consider content fresh\n)-&gt;dict:\n\nCheck content freshness based on last updated date.",
+    "crumbs": [
+      "SEO Content Analysis"
+    ]
+  },
+  {
+    "objectID": "schema_extractor.html",
+    "href": "schema_extractor.html",
+    "title": "Schema Extractor",
+    "section": "",
+    "text": "source\n\n\n\ndef extract_faq_queries(\n    rows:list[dict] | list[str], # GSC query dicts or plain strings\n)-&gt;list:\n\nFilter GSC queries that are questions in Arabic or English.",
+    "crumbs": [
+      "Schema Extractor"
+    ]
+  },
+  {
+    "objectID": "schema_extractor.html#faq-extractor-rule-based-arabic-english",
+    "href": "schema_extractor.html#faq-extractor-rule-based-arabic-english",
+    "title": "Schema Extractor",
+    "section": "",
+    "text": "source\n\n\n\ndef extract_faq_queries(\n    rows:list[dict] | list[str], # GSC query dicts or plain strings\n)-&gt;list:\n\nFilter GSC queries that are questions in Arabic or English.",
+    "crumbs": [
+      "Schema Extractor"
+    ]
+  },
+  {
+    "objectID": "seo_site_analysis.html",
+    "href": "seo_site_analysis.html",
+    "title": "SEO Site Analysis",
+    "section": "",
+    "text": "source\n\ndetect_duplicate_content\n\ndef detect_duplicate_content(\n    session:Session, # Active database session\n    website_id:int, # Website to search within\n    content:str, # Normalized page content\n    file_path:str, # Current article path (to exclude self)\n    similarity_threshold:float=0.8, # Minimum similarity to flag\n)-&gt;dict:\n\nFind articles within a website with content similar to the given content.\n\nsource\n\n\nanalyze_content_groups\n\ndef analyze_content_groups(\n    session:Session, # Active database session\n    website_id:int, # Website to search within\n    similarity_threshold:float=0.8, # Minimum similarity to group\n)-&gt;dict:\n\nGroup similar articles together across a website.\n\nsource\n\n\nanalyze_keyword_cannibalization\n\ndef analyze_keyword_cannibalization(\n    session:Session, # Active database session\n    website_id:int, # Website to search within\n    keyword:str, # Focus keyword to check\n)-&gt;dict:\n\nFind articles within a website competing for the same focus keyword.\n\nsource\n\n\nanalyze_content_groups_fast\n\ndef analyze_content_groups_fast(\n    session:Session, website_id:int, similarity_threshold:float=0.8, num_hashes:int=128\n)-&gt;dict:\n\nGroup similar articles using MinHash for fast approximate similarity.\n\nsource\n\n\nminhash_similarity\n\ndef minhash_similarity(\n    sig1:list, sig2:list\n)-&gt;float:\n\nEstimate Jaccard similarity from two MinHash signatures.\n\nsource\n\n\nminhash_signature\n\ndef minhash_signature(\n    shingles:set, num_hashes:int=128\n)-&gt;list:\n\nCompute MinHash signature for a set of shingles.\n\nsource\n\n\nget_shingles\n\ndef get_shingles(\n    text:str, n:int=3\n)-&gt;set:\n\nGenerate n-word shingles from text.",
+    "crumbs": [
+      "SEO Site Analysis"
+    ]
+  },
+  {
+    "objectID": "gsc_insights.html",
+    "href": "gsc_insights.html",
+    "title": "GSC Insights",
+    "section": "",
+    "text": "source\n\nget_date_ranges_for_comparison\n\ndef get_date_ranges_for_comparison(\n    days:int=30, # Number of days per period\n)-&gt;tuple:\n\nReturn two consecutive date ranges for period comparison, accounting for 3-day GSC delay.\n\nsource\n\n\napply_strftime\n\ndef apply_strftime(\n    date:datetime\n):\n\nCall self as a function.\n\nsource\n\n\ncompare_periods\n\ndef compare_periods(\n    recent:list, # Recent period query data\n    previous:list, # Previous period query data\n)-&gt;list:\n\nCompare two periods of query data and return trend analysis sorted by impression change.\n\nsource\n\n\ndetect_query_trends\n\ndef detect_query_trends(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    page_path:str | None=None, # Filter by page path substring\n    days:int=30, # Days per comparison period\n    limit:int=100, # Max queries to analyze\n)-&gt;list:\n\nDetect rising and declining queries by comparing two consecutive periods.\n\nsource\n\n\nclassify_intent\n\ndef classify_intent(\n    query:str, # Search query\n)-&gt;str:\n\nClassify query intent based on keyword patterns.\n\nsource\n\n\nclassify_page_intents\n\ndef classify_page_intents(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    start_date:str, # Start date (YYYY-MM-DD)\n    end_date:str, # End date (YYYY-MM-DD)\n    country:str | None=None, # Filter by country code\n    page_path:str | None=None, # Filter by page path substring\n    limit:int=10, # Max rows to return\n)-&gt;list:\n\nGet top queries with intent classification.\n\nsource\n\n\nquery_words_in_content\n\ndef query_words_in_content(\n    query:str, # Search query\n    content:str, # Page content\n)-&gt;bool:\n\nCheck if all significant words from a query appear in the content.\n\nsource\n\n\nfind_missing_queries\n\ndef find_missing_queries(\n    queries:list, # GSC query dicts\n    content:str, # Page content\n)-&gt;list:\n\nFind GSC queries whose significant words don’t appear in the page content.\n\nsource\n\n\nfind_green_keywords\n\ndef find_green_keywords(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    page_path:str, # Page path to analyze\n    content:str, # Page content\n    days:int=30, # Days per comparison period\n    limit:int=100, # Max queries to analyze\n)-&gt;list:\n\nFind emerging queries not yet covered in page content.",
+    "crumbs": [
+      "GSC Insights"
+    ]
+  },
+  {
+    "objectID": "index_tracking.html",
+    "href": "index_tracking.html",
+    "title": "Index Tracking",
+    "section": "",
+    "text": "source\n\ninspect_url_status\n\ndef inspect_url_status(\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    site_url:str, # GSC property URL\n    page_url:str, # Page URL to inspect\n)-&gt;dict:\n\nInspect URL indexing status from Google Search Console.\n\nfrom fastcore.test import test_eq\n\nfrom pprint import pprint\nfrom seo_rat.gsc_client import GSCAuth\nfrom sqlmodel import Session, create_engine, SQLModel\nfrom seo_rat.sqlite_db import  get_session\n\nauth = GSCAuth()\n\n# Test inspect_url_status\nstatus = inspect_url_status(auth, \"sc-domain:kareemai.com\", \"https://kareemai.com/\")\nprint(f\"Verdict: {status['verdict']}\")\ntest_eq(\"verdict\" in status, True)\n\npprint(status)\n\nVerdict: PASS\n{'coverage_state': 'Submitted and indexed',\n 'indexing_state': 'INDEXING_ALLOWED',\n 'last_crawl_time': '2026-04-02T06:59:29Z',\n 'robots_txt_state': 'ALLOWED',\n 'verdict': 'PASS'}\n\n\n\nsource\n\n\nstore_index_status\n\ndef store_index_status(\n    session:Session, # Active database session\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    site_url:str, # GSC property URL\n    page_url:str, # Page URL to inspect and store\n)-&gt;None:\n\nInspect and store URL index status as a new history row.\n\nsource\n\n\nget_index_status\n\ndef get_index_status(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n    verdict:str | None=None, # Optional verdict to filter by\n)-&gt;list:\n\nGet latest index status per page, optionally filtered by verdict.\n\nsource\n\n\nget_not_indexed_pages\n\ndef get_not_indexed_pages(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n)-&gt;list:\n\nGet pages whose latest index status is not PASS.\n\nsource\n\n\nget_not_indexed_by_reason\n\ndef get_not_indexed_by_reason(\n    session:Session, # Active database session\n    site_url:str, # GSC property URL\n)-&gt;dict:\n\nGroup not-indexed pages by their coverage state reason.\n\nsource\n\n\nfetch_sitemap_urls\n\ndef fetch_sitemap_urls(\n    sitemap_url:str, # URL of the sitemap XML\n)-&gt;list:\n\nFetch all page URLs from a sitemap XML.\n\nsource\n\n\nstore_all_index_status\n\ndef store_all_index_status(\n    session:Session, # Active database session\n    auth:GSCAuth, # Authenticated GSCAuth instance\n    site_url:str, # GSC property URL\n    sitemap_url:str, # URL of the sitemap to process\n)-&gt;dict:\n\nCheck and store index status for all pages in a sitemap.\n\nsource\n\n\nget_index_history\n\ndef get_index_history(\n    session:Session, # Active database session\n    page_url:str, # Page URL to look up\n)-&gt;list:\n\nGet full index status history for a page, newest first.",
+    "crumbs": [
+      "Index Tracking"
+    ]
+  }
+]

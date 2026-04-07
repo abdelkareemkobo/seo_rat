@@ -1,0 +1,491 @@
+# seo_rat Module Documentation
+
+## seo_rat.article
+
+> Database model and CRUD operations for tracking article files and their SEO metadata.
+
+- `class Article`
+    An article file tracked for SEO optimization.
+
+
+- `def insert_article(session, article)`
+    Insert a new article into the database.
+
+- `def get_article_by_id(session, article_id)`
+    Get an article by its ID.
+
+- `def get_article_by_path(session, file_path)`
+    Get an article by its file path.
+
+- `def get_articles_by_website(session, website_id)`
+    Get all articles belonging to a website.
+
+- `def delete_article(session, article_id)`
+    Delete an article by ID. Raises ValueError if not found.
+
+- `def update_article(session, article_id, focus_keyword, secondary_keywords, target_goal, url)`
+    Update article fields and set last_optimized to now. Raises ValueError if not found.
+
+## seo_rat.content_mapper
+
+> Map website URLs to local source files using direct, slug, or limax strategies.
+
+- `def url_to_relpath(url, base_path, site_url)`
+    Convert a page URL to a relative local path, stripping site URL and .html suffix.
+
+- `def find_source_file(rel_path, exts)`
+    Find first existing source file matching the path with any of the given extensions.
+
+- `def url_to_file_path(url, base_path, site_url)`
+    Map a website URL to its local source file path.
+
+- `def build_limax_slug_index(base_path)`
+    Build slug→filepath index using Node/limax transliteration for Arabic Astro sites.
+
+- `def build_slug_index(base_path)`
+    Build slug→filepath index by reading `slug` field from frontmatter of all source files.
+
+- `def map_all_urls_to_files(base_path, site_url, urls, mode, normalize)`
+    Map page URLs to local source file paths using the specified strategy.
+
+## seo_rat.content_parser
+
+> Utilities for parsing markdown/notebook metadata, extracting content, and validating SEO elements.
+
+- `def parse_metadata(content)`
+    Extract metadata from YAML frontmatter.
+
+- `def parse_notebook_metadata(content)`
+    Extract metadata from the first cell of a Jupyter notebook.
+
+- `def is_frontmatter(cell)`
+    Check if a cell is a YAML frontmatter cell.
+
+- `def is_visible_code(cell, is_quarto)`
+    Check if a code cell should be included in output.
+
+- `def extract_notebook_content(content, is_quarto)`
+    Extract visible markdown and code content from a Jupyter notebook.
+
+- `def remove_metadata(content)`
+    Remove frontmatter from content
+
+- `def check_length(text, min_len, max_len)`
+    Check if text length falls within the optimal range.
+
+- `def check_title_length(title, min_len, max_len)`
+    Check if a page title length is optimal for SEO.
+
+- `def check_desc_length(description, min_len, max_len)`
+    Check if a meta description length is optimal for SEO.
+
+- `def check_content_length(content)`
+    Check if page content has sufficient word count for SEO.
+
+- `def extract_headers(file_path)`
+    Extract all headers with their level, line number, content, and length.
+
+- `def extract_links(content)`
+    Extract all links with metadata
+
+- `def extract_images(content)`
+    Extract images with alt text from markdown and HTML.
+
+- `def imgs_missing_alts(images)`
+    Return URLs of images missing alt text.
+
+- `def is_special_url(url)`
+    Check if URL is an anchor, mailto, tel, or javascript link.
+
+- `def filter_internal_links(urls, domain)`
+    Filter for internal links, excluding images and special URLs.
+
+- `def filter_external_links(urls, domain)`
+    Filter for external links only, excluding images and special URLs.
+
+- `def normalize_text(text)`
+    Normalize text by collapsing extra whitespace.
+
+- `def detect_phone_numbers(text)`
+    Extract phone numbers from text.
+
+- `def calculate_similarity(text1, text2)`
+    Calculate similarity ratio between two texts using SequenceMatcher.
+
+- `def get_file_paths(pattern)`
+    Get file paths matching a glob pattern.
+
+- `def get_file_name(file_path)`
+    Extract filename without extension from a path.
+
+- `def get_markdown_files(directory)`
+    Get all markdown filenames (without extension) from a directory.
+
+- `def get_page_content(file_path, is_quarto)`
+    Read a file and return its text content, stripping frontmatter.
+
+- `def arabic_to_slug(text)`
+    Convert Arabic text to a URL-friendly slug.
+
+- `def map_files_to_slugs(directory)`
+    Map markdown filenames to their URL slugs.
+
+## seo_rat.gsc_client
+
+> Google Search Console authentication, date range helpers, and data fetching utilities.
+
+- `class GSCAuth`
+    Google Search Console authentication handler.
+
+    - `def __init__(self, secrets_file, token_file)`
+    - `def get_credentials(self)`
+        Return valid credentials, refreshing if expired.
+
+    - `def authenticate(self)`
+        Run OAuth flow to obtain and save new credentials.
+
+
+- `def get_date_range(range_type, days, months, start_date, end_date)`
+    Generate a date range for GSC queries, accounting for the 3-day data delay.
+
+- `def fetch_gsc_data(auth, site_url, start_date, end_date, dimensions, row_limit)`
+    Fetch analytics rows from Google Search Console.
+
+- `def get_verified_sites(auth)`
+    Get all verified GSC properties for the authenticated account.
+
+## seo_rat.gsc_insights
+
+> Extract actionable insights from GSC data including trends, intents, and opportunities.
+
+- `def get_date_ranges_for_comparison(days)`
+    Return two consecutive date ranges for period comparison, accounting for 3-day GSC delay.
+
+- `def compare_periods(recent, previous)`
+    Compare two periods of query data and return trend analysis sorted by impression change.
+
+- `def detect_query_trends(session, site_url, page_path, days, limit)`
+    Detect rising and declining queries by comparing two consecutive periods.
+
+- `def classify_intent(query)`
+    Classify query intent based on keyword patterns.
+
+- `def classify_page_intents(session, site_url, start_date, end_date, country, page_path, limit)`
+    Get top queries with intent classification.
+
+- `def query_words_in_content(query, content)`
+    Check if all significant words from a query appear in the content.
+
+- `def find_missing_queries(queries, content)`
+    Find GSC queries whose significant words don't appear in the page content.
+
+- `def find_green_keywords(session, site_url, page_path, content, days, limit)`
+    Find emerging queries not yet covered in page content.
+
+## seo_rat.gsc_storage
+
+> Query, filter, and persist Google Search Console analytics data in SQLite.
+
+- `def filter_site(query, site_url)`
+    Filter query by site URL.
+
+- `def filter_dates(query, start, end)`
+    Filter query by date range.
+
+- `def filter_dimension(query, dimension, value)`
+    Filter query by a specific dimension value.
+
+- `def filter_exclude_pages(query, exclude_pages)`
+    Exclude rows where page contains any of the given substrings.
+
+- `class AnalyticsSummary`
+
+- `def normalize_url(url)`
+    Normalize URL by decoding percent-encoding and standardizing separators
+
+- `def parse_gsc_row(row, site_url, date)`
+    Parse a raw GSC API row into a GSCAnalytics instance.
+
+- `def store_gsc_data(session, site_url, date, rows)`
+    Store GSC rows with upsert (update on conflict).
+
+- `def get_top_queries(session, site_url, start_date, end_date, country, page_path, limit, sort_by)`
+    Get top performing queries, optionally filtered by country and page.
+
+- `def get_top_pages(session, site_url, start_date, end_date, country, limit, sort_by)`
+    Get top performing pages by clicks or impressions.
+
+- `def get_wins(session, site_url, start_date, end_date, min_impressions, min_position, max_position, country, page_url, limit)`
+    Get high-impression, low-ranking keyword opportunities.
+
+- `def get_top_queries_excluding_pages(session, site_url, start_date, end_date, exclude_pages, country, limit)`
+    Get top queries excluding specific pages.
+
+- `def get_page_analytics(session, site_url, page_path, start_date, end_date)`
+    Get aggregated analytics and top queries for a specific page.
+
+- `def get_analytics_by_date_range(session, site_url, start_date, end_date)`
+    Get all raw GSC analytics rows for a date range.
+
+- `def get_trends(session, site_url, start_date, end_date, dimension)`
+    Get click/impression trends over time, optionally grouped by a dimension.
+
+- `def get_analytics_by(session, site_url, start_date, end_date, dimension, value)`
+    Get query-level analytics filtered by a specific dimension value.
+
+- `def store_single_date(session, auth, site_url, date)`
+    Fetch and store GSC data for a single date. Returns number of records stored.
+
+- `def store_date_range(session, auth, site_url, start_date, end_date)`
+    Fetch and store GSC data for all dates in range.
+
+- `def iter_dates(start_date, end_date)`
+    Generate all dates between start and end inclusive.
+
+- `def get_missing_dates(session, site_url, start_date, end_date)`
+    Return dates in range that have no stored GSC data.
+
+- `def sync_missing_dates(session, auth, site_url, start_date, end_date)`
+    Fetch and store GSC data for missing dates only.
+
+- `def daily_sync(session, auth, sites)`
+    Sync missing GSC data for all sites up to today.
+
+- `def compare_date_ranges(session, site_url, start1, end1, start2, end2, page_url)`
+    Compare GSC metrics between two date ranges, optionally for a specific page.
+
+- `def get_country_breakdown(session, site_url, start_date, end_date, page_url, limit)`
+    Get traffic metrics grouped by country, optionally for a specific page.
+
+## seo_rat.index_tracking
+
+> Inspect, store, and analyze Google Search Console URL indexing status.
+
+- `def inspect_url_status(auth, site_url, page_url)`
+    Inspect URL indexing status from Google Search Console.
+
+- `def store_index_status(session, auth, site_url, page_url)`
+    Inspect and store URL index status as a new history row.
+
+- `def get_index_status(session, site_url, verdict)`
+    Get latest index status per page, optionally filtered by verdict.
+
+- `def get_not_indexed_pages(session, site_url)`
+    Get pages whose latest index status is not PASS.
+
+- `def get_not_indexed_by_reason(session, site_url)`
+    Group not-indexed pages by their coverage state reason.
+
+- `def fetch_sitemap_urls(sitemap_url)`
+    Fetch all page URLs from a sitemap XML.
+
+- `def store_all_index_status(session, auth, site_url, sitemap_url)`
+    Check and store index status for all pages in a sitemap.
+
+- `def get_index_history(session, page_url)`
+    Get full index status history for a page, newest first.
+
+## seo_rat.keyword_ranking
+
+> Track and analyze keyword rankings from GSC performance data.
+
+- `def get_previous_period(start, end)`
+    Return the date range immediately preceding the given range with equal duration.
+
+- `def get_keyword_rankings(session, site_url, keywords, range_type, country)`
+    Get aggregated ranking metrics for keywords with period-over-period position change.
+
+- `def get_keyword_rankings_daily(session, site_url, keywords, range_type, days, months, country)`
+    Fetch daily ranking metrics per keyword for trend charts.
+
+- `def plot_keyword_rankings(results)`
+    Plot keyword position and clicks over time as a two-panel chart.
+
+## seo_rat.models
+
+> SQlModel Models of the Website.
+
+- `class Website`
+    Represents a website being tracked for SEO analysis.
+
+    - `@field_validator('url') @classmethod def validate_url(cls, v)`
+    - `@field_validator('name') @classmethod def validate_name(cls, v)`
+    - `@field_validator('lang') @classmethod def validate_lang(cls, v)`
+
+- `def get_all_websites(session)`
+    Return all websites from the database.
+
+- `def delete_website(session, website_id)`
+    Delete a website by ID, raises ValueError if not found.
+
+- `def add_or_update_website(session, url, name, site_type, desc, lang, content_dir, website_id)`
+    Add a new website or update an exisiting one.
+
+- `def print_websites(websites)`
+    Print websites as a rich table.
+
+- `class GSCAnalytics`
+    Google Search Console analytics data for a site, query, page, and device combination.
+
+
+- `class IndexStatus`
+    Google Search Console indexing status for a specific page.
+
+
+## seo_rat.page_seo_audit
+
+- `def full_page_audit(session, site_url, page_url, file_path, domain, is_quarto, days, query_limit)`
+    Generate a comprehensive SEO audit for a single page
+
+- `def print_audit(audit)`
+    Pretty print a page audit
+
+## seo_rat.schema_extractor
+
+> Extract and parse JSON-LD schema markup from web pages.
+
+- `def extract_faq_queries(rows)`
+    Filter GSC queries that are questions in Arabic or English.
+
+## seo_rat.schema_validator
+
+> Validate structured data (JSON-LD) against schema.org definitions.
+
+- `def fetch_html(url, timeout)`
+    Fetch raw HTML from a live URL. Returns (html, status_code).
+
+- `def extract_jsonld_schemas(html)`
+    Extract all JSON-LD schema blocks from HTML. Returns list of parsed dicts.
+
+- `def extract_microdata_schemas(html)`
+    Extract Microdata itemscope blocks from HTML as flat dicts.
+
+- `def extract_schemas(html)`
+    Extract all schema blocks (JSON-LD + Microdata) from HTML.
+
+- `def validate_schema(schema_block)`
+    Validate a single schema block against Google's rich result spec.
+
+- `def validate_page(url, timeout)`
+    Fetch a live URL and validate all schema.org markup found on the page.
+
+- `def validate_pages(urls, timeout)`
+    Validate schema markup for a list of URLs.
+
+## seo_rat.semantic_search
+
+- `class KeywordVectorDB`
+    - `def __init__(self, model_name)`
+    - `def get_or_create_collection(self, page_url)`
+        Get existing collection or create if doesn't exist
+
+    - `def store_keywords(self, page_url, keywords_data)`
+        Store keywords with performance data
+
+    - `def search_keywords(self, page_url, query_text, limit)`
+        Search similar keywords
+
+    - `def get_keywords(self, page_url, min_clicks)`
+        Get all keywords for a page
+
+    - `def update_content_status(self, page_url, content)`
+        Mark which keywords appear in content
+
+    - `def set_keyword_importance(self, page_url, keyword, is_important)`
+        Mark keyword as important or not
+
+    - `def get_keyword_importance(self, page_url, keyword)`
+        Check if keyword is marked important
+
+
+## seo_rat.seo_content_analysis
+
+> Analyze content for keyword placement, heading structure, and on-page SEO factors.
+
+- `def calculate_keyword_density(content, keyword)`
+    Calculate keyword density using word-level matching.
+
+- `def find_cannibalized(session, website_id, site_url, start, end)`
+    Find keyword cannibalization via exact focus keyword matches and GSC ranking data.
+
+- `def check_h1_count(headers, title, title_is_h1)`
+    Check H1 count — for Quarto, the title frontmatter field acts as H1.
+
+- `def keyword_in_first_section(content, keyword, percent)`
+    Check if keyword appears in the first X% of content.
+
+- `def check_paragraph_length(content)`
+    Check average number of sentences per paragraph.
+
+- `def keyword_in_metadata(metadata, keyword, desc_field)`
+    Check if keyword appears in title and description metadata fields.
+
+- `def keyword_in_alt_texts(images, keyword)`
+    Check if keyword appears in any image alt text.
+
+- `def analyze_header_distribution(headers)`
+    Analyze header type distribution as counts and percentages.
+
+- `def check_keyword_placement(keyword, metadata, headers, content, url, desc_field, title_is_h1)`
+    Check where the focus keyword appears across page elements.
+
+- `def content_freshness(last_updated, days)`
+    Check content freshness based on last updated date.
+
+## seo_rat.seo_report
+
+> Sync articles, detect duplicate metadata, and generate SEO reports from GSC data.
+
+- `def sync_articles_to_db(session, website_id, url_file_mapping)`
+    Insert articles into the database, skipping already existing ones.
+
+- `def find_duplicate_metadata(session, field, website_id, similarity_threshold)`
+    Find articles with duplicate or very similar metadata field values.
+
+- `def analyze_links(content, domain)`
+    Analyze internal and external links in content.
+
+- `def check_heading_structure(headers)`
+    Check heading structure for H2 presence and skipped levels.
+
+- `def analyze_article(article, domain, is_quarto, title_is_h1, desc_field, title_field, date_field)`
+    Run all SEO checks for a single article and return its report dict.
+
+- `def generate_seo_report(session, website_id, domain, is_quarto, title_is_h1, desc_field, title_field, date_field, include_insights, days, query_limit)`
+    Generate a comprehensive SEO report for all articles in a website.
+
+- `def print_issues_report(report)`
+    Print SEO issues sorted from most issues to fewest.
+
+## seo_rat.seo_site_analysis
+
+> Crawl and analyze entire sites for technical SEO issues and link structure.
+
+- `def detect_duplicate_content(session, website_id, content, file_path, similarity_threshold)`
+    Find articles within a website with content similar to the given content.
+
+- `def analyze_keyword_cannibalization(session, website_id, keyword)`
+    Find articles within a website competing for the same focus keyword.
+
+- `def analyze_content_groups(session, website_id, similarity_threshold)`
+    Group similar articles together across a website.
+
+- `def get_shingles(text, n)`
+    Generate n-word shingles from text.
+
+- `def minhash_signature(shingles, num_hashes)`
+    Compute MinHash signature for a set of shingles.
+
+- `def minhash_similarity(sig1, sig2)`
+    Estimate Jaccard similarity from two MinHash signatures.
+
+- `def analyze_content_groups_fast(session, website_id, similarity_threshold, num_hashes)`
+    Group similar articles using MinHash for fast approximate similarity.
+
+## seo_rat.sqlite_db
+
+> A Simple API for configure the DB connection with Sqlite
+
+- `def get_session(db_url)`
+    Create a SQLite session.
+
