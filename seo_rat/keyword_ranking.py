@@ -83,10 +83,12 @@ def get_keyword_rankings_daily(session,  # Active database session
                                site_url: str,  # GSC property URL
                                keywords: list[str],  # Keywords to look up
                                range_type: str = "last_7_days",  # Date range type
+                               days=None,
+                               months=None,
                                country: str | None = None  # ISO 3166-1 alpha-3 country code
                                ) -> list[dict]:
     "Fetch daily ranking metrics per keyword for trend charts."
-    start, end = get_date_range(range_type=range_type)
+    start, end = get_date_range(range_type=range_type,days=days,months=months)
     return _fetch_daily_rankings(session, site_url, keywords, start, end, country)
 
 

@@ -2,6 +2,11 @@
 
 ---
 
+## Technical features Improvements
+- keyword_ranking is using exact match 
+  - we could expand it to support fuzzy match with `LIKE`
+- keyword_cannobilization is very slow and need a lot of optimization to be much faster. 
+
 ## ✅ Completed
 
 ### Core Infrastructure
@@ -229,7 +234,7 @@ pending |
 - Social meta (OpenGraph, Twitter Cards)
 - PageSpeed tracking per page
 - Email SEO reports (weekly/monthly digests)
-- llms.txt generator (new AI crawler feature)
+- [x] llms.txt generator (new AI crawler feature)
 - Knowledge Graph markup
 - Canonical tag management
 - robots.txt / .htaccess editor

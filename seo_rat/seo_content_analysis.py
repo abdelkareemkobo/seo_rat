@@ -143,4 +143,5 @@ def content_freshness(last_updated: str,  # Last updated date (YYYY-MM-DD)
         delta = (datetime.now() - updated).days
         return {"last_updated": last_updated, "days_since_update": delta, "is_fresh": delta <= days}
     except (ValueError, TypeError):
-        return {"last_updated": last_updated, "error": "Invalid date format. Use YYYY-MM-DD."}
+        return {"last_updated": last_updated, "days_since_update": None, "is_fresh": True}
+

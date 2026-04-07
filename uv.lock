@@ -1725,6 +1725,7 @@ dependencies = [
     { name = "pysymbol-llm" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+    { name = "rich" },
     { name = "sqlmodel" },
     { name = "twine" },
 ]
@@ -1745,6 +1746,7 @@ requires-dist = [
     { name = "pysymbol-llm", specifier = ">=0.0.5" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "rich", specifier = ">=14.3.3" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "twine", specifier = ">=6.2.0" },
 ]

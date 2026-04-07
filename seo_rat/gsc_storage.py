@@ -2,9 +2,10 @@
 
 # %% auto #0
 __all__ = ['filter_site', 'filter_dates', 'filter_dimension', 'filter_exclude_pages', 'AnalyticsSummary', 'normalize_url',
-           'parse_gsc_row', 'store_gsc_data', 'get_top_queries', 'get_top_queries_excluding_pages',
-           'get_page_analytics', 'get_analytics_by_date_range', 'get_trends', 'get_analytics_by', 'store_single_date',
-           'store_date_range', 'iter_dates', 'get_missing_dates', 'sync_missing_dates', 'daily_sync']
+           'parse_gsc_row', 'store_gsc_data', 'get_top_queries', 'get_top_pages', 'get_wins',
+           'get_top_queries_excluding_pages', 'get_page_analytics', 'get_analytics_by_date_range', 'get_trends',
+           'get_analytics_by', 'store_single_date', 'store_date_range', 'iter_dates', 'get_missing_dates',
+           'sync_missing_dates', 'daily_sync', 'compare_date_ranges', 'get_country_breakdown']
 
 # %% ../nbs/05_gsc_storage.ipynb #9ba81a16
 from sqlmodel import Session, select
@@ -130,6 +131,54 @@ def get_top_queries(session: Session,  # Active database session
              .order_by(sort_col.desc())
              .limit(limit))
     return [row._asdict() for row in session.exec(query)]
+
+
+# %% ../nbs/05_gsc_storage.ipynb #7d56cafe433f7d3
+def get_top_pages(session: Session, site_url: str, start_date: str, end_date: str,
+                  country: str | None = None, limit: int = 20, sort_by: str = "clicks") -> list[dict]:
+    "Get top performing pages by clicks or impressions."
+    base = select(GSCAnalytics.page,
+                  func.sum(GSCAnalytics.clicks).label("total_clicks"),
+                  func.sum(GSCAnalytics.impressions).label("total_impressions"),
+                  func.avg(GSCAnalytics.position).label("avg_position"),
+                  func.avg(GSCAnalytics.ctr).label("avg_ctr"))
+    filters = [partial(filter_site, site_url=site_url),
+               partial(filter_dates, start=start_date, end=end_date)]
+    if country: filters.append(partial(filter_dimension, dimension="country", value=country))
+    sort_col = func.sum(GSCAnalytics.impressions) if sort_by == "impressions" else func.sum(GSCAnalytics.clicks)
+    query = (compose(*filters)(base)
+             .where(GSCAnalytics.page.isnot(None))
+             .group_by(GSCAnalytics.page)
+             .order_by(sort_col.desc())
+             .limit(limit))
+    return [row._asdict() for row in session.exec(query)]
+
+
+# %% ../nbs/05_gsc_storage.ipynb #1de8de5b03c02569
+def get_wins(session: Session, site_url: str, start_date: str, end_date: str,
+             min_impressions: int = 100, min_position: float = 10.0,
+             max_position: float = 50.0, country: str | None = None,
+             page_url: str | None = None, limit: int = 20) -> list[dict]:
+    "Get high-impression, low-ranking keyword opportunities."
+    base = select(GSCAnalytics.query,
+                  func.sum(GSCAnalytics.clicks).label("total_clicks"),
+                  func.sum(GSCAnalytics.impressions).label("total_impressions"),
+                  func.avg(GSCAnalytics.position).label("avg_position"),
+                  func.avg(GSCAnalytics.ctr).label("avg_ctr"))
+    filters = [partial(filter_site, site_url=site_url),
+               partial(filter_dates, start=start_date, end=end_date)]
+    if country: filters.append(partial(filter_dimension, dimension="country", value=country))
+    if page_url: filters.append(lambda q: q.where(GSCAnalytics.page == page_url))
+    query = (compose(*filters)(base)
+             .where(GSCAnalytics.query.isnot(None))
+             .group_by(GSCAnalytics.query)
+             .having(func.sum(GSCAnalytics.impressions) >= min_impressions,
+                     func.avg(GSCAnalytics.position) >= min_position,
+                     func.avg(GSCAnalytics.position) <= max_position)
+             .order_by(func.sum(GSCAnalytics.impressions).desc())
+             .limit(limit))
+    return [row._asdict() for row in session.exec(query)]
+
 
 
 # %% ../nbs/05_gsc_storage.ipynb #bac24352
@@ -341,3 +390,82 @@ def daily_sync(session: Session,  # Active database session
                                      min(get_missing_dates(session, site, "2020-01-01", end), default=end),
                                      end)
             for site in sites}
+
+# %% ../nbs/05_gsc_storage.ipynb #58afee0a297eae06
+def compare_date_ranges(session: Session,  # Active database session
+                        site_url: str,  # GSC property URL
+                        start1: str,  # First period start date (YYYY-MM-DD)
+                        end1: str,  # First period end date (YYYY-MM-DD)
+                        start2: str,  # Second period start date (YYYY-MM-DD)
+                        end2: str,  # Second period end date (YYYY-MM-DD)
+                        page_url: str | None = None  # Optional specific page to compare
+                        ) -> dict:
+    "Compare GSC metrics between two date ranges, optionally for a specific page."
+    # Get metrics for period 1
+    base = select(
+        func.sum(GSCAnalytics.clicks).label("clicks"),
+        func.sum(GSCAnalytics.impressions).label("impressions"),
+        func.avg(GSCAnalytics.position).label("avg_position"),
+        func.avg(GSCAnalytics.ctr).label("avg_ctr")
+    )
+    filters1 = compose(
+        partial(filter_site, site_url=site_url),
+        partial(filter_dates, start=start1, end=end1)
+    )
+    if page_url:
+        filters1 = compose(filters1, lambda q: q.where(GSCAnalytics.page == page_url))
+    row1 = session.exec(filters1(base)).first()
+
+    # Get metrics for period 2
+    filters2 = compose(
+        partial(filter_site, site_url=site_url),
+        partial(filter_dates, start=start2, end=end2)
+    )
+    if page_url:
+        filters2 = compose(filters2, lambda q: q.where(GSCAnalytics.page == page_url))
+    row2 = session.exec(filters2(base)).first()
+
+    def to_dict(row):
+        return {
+            "clicks": row.clicks or 0,
+            "impressions": row.impressions or 0,
+            "avg_position": round(row.avg_position or 0, 2),
+            "avg_ctr": round((row.avg_ctr or 0) * 100, 2)
+        }
+
+    return {
+        "page_url": page_url,
+        "period1": {"start": start1, "end": end1, **to_dict(row1)},
+        "period2": {"start": start2, "end": end2, **to_dict(row2)}
+    }
+
+# %% ../nbs/05_gsc_storage.ipynb #9bf3af91d6697f29
+def get_country_breakdown(session: Session,  # Active database session
+                          site_url: str,  # GSC property URL
+                          start_date: str,  # Start date (YYYY-MM-DD)
+                          end_date: str,  # End date (YYYY-MM-DD)
+                          page_url: str | None = None,  # Optional specific page to filter
+                          limit: int = 20  # Max number of countries to return
+                          ) -> list[dict]:
+    "Get traffic metrics grouped by country, optionally for a specific page."
+    base = select(
+        GSCAnalytics.country,
+        func.sum(GSCAnalytics.clicks).label("clicks"),
+        func.sum(GSCAnalytics.impressions).label("impressions"),
+        func.avg(GSCAnalytics.position).label("avg_position"),
+        func.avg(GSCAnalytics.ctr).label("avg_ctr")
+    )
+    filters = compose(
+        partial(filter_site, site_url=site_url),
+        partial(filter_dates, start=start_date, end=end_date)
+    )
+    if page_url:
+        filters = compose(filters, lambda q: q.where(GSCAnalytics.page == page_url))
+
+    query = (filters(base)
+             .where(GSCAnalytics.country.isnot(None))
+             .group_by(GSCAnalytics.country)
+             .order_by(func.sum(GSCAnalytics.clicks).desc())
+             .limit(limit))
+
+    return [row._asdict() for row in session.exec(query)]

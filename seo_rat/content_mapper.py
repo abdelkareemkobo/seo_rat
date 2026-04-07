@@ -20,7 +20,7 @@ def url_to_relpath(url:str,      # Full page URL
                    site_url:str   # Site base URL to strip
                   ) -> Path | None:
     "Convert a page URL to a relative local path, stripping site URL and .html suffix."
-    url_cleaned = url.removeprefix(site_url).removesuffix(".html")
+    url_cleaned = url.removeprefix(site_url).removesuffix(".html").lstrip("/")
     return Path(base_path) / url_cleaned
 
 # %% ../nbs/08_content_mapper.ipynb #077f14e2

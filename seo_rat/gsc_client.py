@@ -23,9 +23,9 @@ class GSCAuth:
     ]
 
     def __init__(self,
-                 secrets_file:str="./client_secrets.json", # Path to OAuth client secrets
-                 token_file:str="./token.pickle"           # Path to cached token
-                ):
+                 secrets_file: str = "./client_secrets.json",  # Path to OAuth client secrets
+                 token_file: str = "./token.pickle"  # Path to cached token
+                 ):
         store_attr()
         self.token_file = Path(token_file)
         self.credentials = self._load_credentials()
@@ -35,13 +35,15 @@ class GSCAuth:
         if not self.token_file.exists(): return None
         with open(self.token_file, "rb") as f: return pickle.load(f)
 
-    def _save_credentials(self, credentials:Credentials):
+    def _save_credentials(self, credentials: Credentials):
         "Persist credentials to token file."
         with open(self.token_file, "wb") as f: pickle.dump(credentials, f)
 
     def get_credentials(self) -> Credentials | None:
         "Return valid credentials, refreshing if expired."
-        if not self.credentials: return None
+        if not self.credentials:
+            raise ValueError("No credentials found. Run `authenticate()` first.")
+
         if self.credentials.expired:
             self.credentials.refresh(GoogleRequest())
             self._save_credentials(self.credentials)
@@ -54,47 +56,56 @@ class GSCAuth:
         self._save_credentials(self.credentials)
 
 # %% ../nbs/04_gsc_client.ipynb #b490ca7b
-def get_date_range(range_type:str="today",       # One of: today, this_week, last_week, this_month, last_month, last_7_days, last_days, last_months, entire_history, custom
-                   days:int|None=None,           # Number of days for `last_days`
-                   months:int|None=None,         # Number of months for `last_months`
-                   start_date:str|None=None,     # Start date for `custom` (YYYY-MM-DD)
-                   end_date:str|None=None,       # End date for `custom` (YYYY-MM-DD)
-                  ) -> tuple[str, str]:
+def get_date_range(range_type: str = "today",
+                   # One of: today, this_week, last_week, this_month, last_month, last_7_days, last_days, last_months, entire_history, custom
+                   days: int | None = None,  # Number of days for `last_days`
+                   months: int | None = None,  # Number of months for `last_months`
+                   start_date: str | None = None,  # Start date for `custom` (YYYY-MM-DD)
+                   end_date: str | None = None,  # End date for `custom` (YYYY-MM-DD)
+                   ) -> tuple[str, str]:
     "Generate a date range for GSC queries, accounting for the 3-day data delay."
     fmt = lambda d: d.strftime("%Y-%m-%d")
     today = datetime.now()
     latest = today - timedelta(days=3)
 
     match range_type:
-        case "today":             return fmt(latest), fmt(latest)
-        case "last_7_days":       return fmt(latest - timedelta(days=7)), fmt(latest)
-        case "this_week":         return fmt(today - timedelta(days=today.weekday())), fmt(latest)
-        case "this_month":        return fmt(today.replace(day=1)), fmt(latest)
+        case "today":
+            return fmt(latest), fmt(latest)
+        case "last_7_days":
+            return fmt(latest - timedelta(days=7)), fmt(latest)
+        case "this_week":
+            return fmt(today - timedelta(days=today.weekday())), fmt(latest)
+        case "this_month":
+            return fmt(today.replace(day=1)), fmt(latest)
         case "last_week":
             start = today - timedelta(days=today.weekday() + 7)
             return fmt(start), fmt(start + timedelta(days=6))
         case "last_month":
             end = today.replace(day=1) - timedelta(days=1)
             return fmt(end.replace(day=1)), fmt(end)
-        case "entire_history":    return "2020-01-01", fmt(latest)
-        case "last_days" if days: return fmt(latest - timedelta(days=days)), fmt(latest)
-        case "last_months" if months: return fmt(latest - timedelta(days=30 * months)), fmt(latest)
+        case "entire_history":
+            return "2020-01-01", fmt(latest)
+        case "last_days" if days:
+            return fmt(latest - timedelta(days=days)), fmt(latest)
+        case "last_months" if months:
+            return fmt(latest - timedelta(days=30 * months)), fmt(latest)
         case "custom" if start_date and end_date:
             s = datetime.strptime(start_date, "%Y-%m-%d")
             e = min(datetime.strptime(end_date, "%Y-%m-%d"), latest)
             return fmt(s), fmt(e)
-        case _: raise ValueError(f"Invalid range_type or missing parameters: {range_type!r}")
+        case _:
+            raise ValueError(f"Invalid range_type or missing parameters: {range_type!r}")
 
 
 
 # %% ../nbs/04_gsc_client.ipynb #520be733
-def fetch_gsc_data(auth:GSCAuth,                              # Authenticated GSCAuth instance
-                   site_url:str,                              # GSC property URL
-                   start_date:str,                            # Start date (YYYY-MM-DD)
-                   end_date:str,                              # End date (YYYY-MM-DD)
-                   dimensions:list[str]|None=None,            # GSC dimensions to group by
-                   row_limit:int=25000                        # Max rows to fetch
-                  ) -> list[dict]:
+def fetch_gsc_data(auth: GSCAuth,  # Authenticated GSCAuth instance
+                   site_url: str,  # GSC property URL
+                   start_date: str,  # Start date (YYYY-MM-DD)
+                   end_date: str,  # End date (YYYY-MM-DD)
+                   dimensions: list[str] | None = None,  # GSC dimensions to group by
+                   row_limit: int = 25000  # Max rows to fetch
+                   ) -> list[dict]:
     "Fetch analytics rows from Google Search Console."
     if dimensions is None: dimensions = ["query", "page", "country", "device"]
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
@@ -103,8 +114,8 @@ def fetch_gsc_data(auth:GSCAuth,                              # Authenticated GS
 
 
 # %% ../nbs/04_gsc_client.ipynb #d8e05755
-def get_verified_sites(auth:GSCAuth # Authenticated GSCAuth instance
-                      ) -> list[dict]:
+def get_verified_sites(auth: GSCAuth  # Authenticated GSCAuth instance
+                       ) -> list[dict]:
     "Get all verified GSC properties for the authenticated account."
     service = build("searchconsole", "v1", credentials=auth.get_credentials())
     sites = service.sites().list().execute().get("siteEntry", [])

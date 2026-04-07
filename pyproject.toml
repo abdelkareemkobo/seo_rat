@@ -8,8 +8,8 @@ dynamic = ["version"]
 description = "seo rat is an SEO to give you some help to optimize your content based on markdown for sites like astor, quarto"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "Apache-2.0"}
-authors = [{name = "abdelkareemkobo", email = "kareem01095134688@gmail.com"}]
+license = { text = "Apache-2.0" }
+authors = [{ name = "abdelkareemkobo", email = "kareem01095134688@gmail.com" }]
 keywords = ['nbdev', 'jupyter', 'notebook', 'python']
 classifiers = ["Natural Language :: English", "Intended Audience :: Developers", "Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
 dependencies = [
@@ -29,6 +29,7 @@ dependencies = [
     "altair>=6.0.0",
     "pysymbol-llm>=0.0.5",
     "llms-txt>=0.0.6",
+    "rich>=14.3.3",
 ]
 
 [project.urls]
@@ -36,13 +37,30 @@ Repository = "https://github.com/abdelkareemkobo/seo_rat"
 Documentation = "https://abdelkareemkobo.github.io/seo_rat"
 
 [project.scripts]
+
 nbdev_preview = "nbdev.quarto:nbdev_preview"
+seo-rat-sync = "seo_rat.cli:seo_rat_sync"
+seo-rat-report = "seo_rat.cli:seo_rat_report"
+seo-rat-audit = "seo_rat.cli:seo_rat_audit"
+seo-rat-rank = "seo_rat.cli:seo_rat_rank"
+seo-rat-trend = "seo_rat.cli:seo_rat_trend"
+seo-rat-top-pages = "seo_rat.cli:seo_rat_top_pages"
+seo-rat-wins = "seo_rat.cli:seo_rat_wins"
+seo-rat-canob = "seo_rat.cli:seo_rat_canob"
+seo-rat-index-check = "seo_rat.cli:seo_rat_index_check"
+seo-rat-index-report = "seo_rat.cli:seo_rat_index_report"
+seo-rat-crawl-errors = "seo_rat.cli:seo_rat_crawl_errors"
+seo-rat-add-website = "seo_rat.cli:seo_rat_add_website"
+seo-rat-list-websites = "seo_rat.cli:seo_rat_list_websites"
+seo-rat-delete-website = "seo_rat.cli:seo_rat_delete_website"
+seo-rat-compare = "seo_rat.cli:seo_rat_compare"
+seo-rat-country-breakdown = "seo_rat.cli:seo_rat_country_breakdown"
 
 [project.entry-points.nbdev]
 seo_rat = "seo_rat._modidx:d"
 
 [tool.setuptools.dynamic]
-version = {attr = "seo_rat.__version__"}
+version = { attr = "seo_rat.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["seo_rat"]
