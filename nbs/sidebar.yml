@@ -17,3 +17,4 @@ website:
       - 13_schema_validator.ipynb
       - 14_schema_extractor.ipynb
       - 15_keyword_ranking.ipynb
+      - 16_cli.ipynb

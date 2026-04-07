@@ -3,17 +3,19 @@
 ---
 
 ## Technical features Improvements
-- keyword_ranking is using exact match 
-  - we could expand it to support fuzzy match with `LIKE`
-- keyword_cannobilization is very slow and need a lot of optimization to be much faster. 
+
+- keyword_ranking is using exact match
+    - we could expand it to support fuzzy match with `LIKE`
+- keyword_cannobilization is very slow and need a lot of optimization to be much faster.
+    - replaced it with minhash algorthim
 
 ## ✅ Completed
 
 ### Core Infrastructure
 
 - [x] Refactor codebase
-  - make teh auth one time not everytime make ti better flow as a desktop application 
-  - Create the Index.ipynb
+    - make teh auth one time not everytime make ti better flow as a desktop application
+    - Create the Index.ipynb
 - [x] Daily GSC data sync (background script)
 - [x] Smart pull: detect last pulled day, fill missing date ranges
 - [x] Syncthing database — daily pulling into system + backup
